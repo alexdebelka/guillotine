@@ -1,0 +1,102 @@
+{
+  "cli_version": "0.7.7",
+  "checkpoint_id": "efb5c8bc7377",
+  "session_id": "56001ffa-ad32-40a2-85c3-3c4bc55a8c35",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-27T16:23:39.398562Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "save_step_count": 2,
+  "files_touched": [
+    ".gitignore",
+    "CLAUDE.md",
+    "workers/A/train_b3.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "ee4d3c60b23e",
+  "token_usage": {
+    "input_tokens": 47,
+    "cache_creation_tokens": 123992,
+    "cache_read_tokens": 1930217,
+    "output_tokens": 19466,
+    "api_call_count": 27
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-init-2026-06-27T16:07:15.971918Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "init"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "95dcde83c31e",
+      "timestamp": "2026-06-27T16:07:15.971918Z",
+      "native": {
+        "command": "/init"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/init",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-27T16:23:39.390398Z",
+    "agent_lines": 159,
+    "agent_removed": 3,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 159,
+    "total_lines_changed": 162,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 796,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 17,
+        ".gitignore": 1,
+        "workers/C/run_b2.ipynb": 221,
+        "workers/C/run_pipeline_c.ipynb": 448
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 17,
+      "user_lines_removed": 0,
+      "agent_lines_added": 790,
+      "agent_lines_removed": 3,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 17
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 17,
+      "user_lines_removed": 0,
+      "agent_lines_added": 938,
+      "agent_lines_removed": 3,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 17
+      }
+    }
+  ]
+}
