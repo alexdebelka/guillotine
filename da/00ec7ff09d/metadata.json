@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.7.7",
+  "checkpoint_id": "da00ec7ff09d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "workers/A/b4_shape.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/da/00ec7ff09d/0/metadata.json",
+      "transcript": "/da/00ec7ff09d/0/full.jsonl",
+      "content_hash": "/da/00ec7ff09d/0/content_hash.txt",
+      "prompt": "/da/00ec7ff09d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 7,
+    "cache_creation_tokens": 158151,
+    "cache_read_tokens": 196638,
+    "output_tokens": 10596,
+    "api_call_count": 2
+  }
+}
