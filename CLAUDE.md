@@ -145,17 +145,35 @@ uv run slice_clip_baseline.py --data-root "$DATA_ROOT" \
 - Annotated literature: `docs/REFERENCES.md` (PDFs in `papers/`)
 - Consensus search prompts + saved results: `docs/CONSENSUS_QUERIES.md`, `papers/*.csv`
 
-## 9. Repo state (2026-06-27)
+## 9. Repo state (2026-06-27, late)
 
-Code lives under `workers/<track>/`, one directory per teammate track from `docs/ROADMAP.md`:
-- `workers/A/` — Track A (Alex): B3 learned encoder + B4 shape. Currently: `b3_encoder.py` (SwinUNETR + MONAI SSL weight loader, embeds to unit-norm `(C,)` float32), `augmenter.py` (synth-contrast + independent deformation per view, MONAI `Compose`), `smoke_test.py`, `viz_aug.py`, `download_swinvit.sh`. SSL weights expected at `/shared-docker/work/weights/model_swinvit.pt`. Input size `(96,96,96)`.
-- `workers/B/` — Track B: MIND-SSC descriptor (B1) + Stage-2 re-rank. (Empty so far.)
-- `workers/C/` — Track C: eval harness + B2 foundation embeddings + RRF + submission writer. Currently notebooks: `run_b2.ipynb`, `run_pipeline_c.ipynb`.
+Code is split between `workers/<track>/` (per-branch scripts) and `Track C/` (engine + B2 + fusion). Track B has no code yet.
 
-**Embedding contract across tracks:** `dict[id_str -> np.ndarray (C,) unit-norm float32]` → drops into Track C's `rank_by_embeddings` / RRF without conversion. Each branch outputs a ranking; only Track C writes the submission file.
+- `workers/A/` — B3 learned encoder + B4 shape. **Both shipped.**
+  - `b3_encoder.py` — SwinUNETR backbone, MONAI SSL weight loader (handles MONAI 1.6 `Mlp.fc{1,2}`→`linear{1,2}` rename), multi-stage avg+max pool (POOLED_DIM=1536), SimCLR projection head, BatchNorm at head input. Embeds to unit-norm `(C,)` float32 at input `(96,96,96)`.
+  - `augmenter.py` — synth-contrast + independent deformation per view (MONAI `Compose`).
+  - `train_b3.py` — InfoNCE on dataset1 pairs (temp 0.1, no WD, split LRs, logs diag/off-diag sim).
+  - `embed_b3.py` — extract B3 embeddings → `.pkl`.
+  - `b4_shape.py` — B4 V1: centered brain mask resampled to 16³ = 4096-d unit-norm. **Standalone local MRR 0.30 (Level-1, 8/50 top-1).**
+  - `probe_b4_local_mrr.py` — local MRR probe matching Track C's seed=0 split.
+  - `pkl_to_branch.py` — adapter: Track A `.pkl` → Track C branch CSV (`query_id,target_id,score`, higher = more similar).
+  - `smoke_test.py` — SwinUNETR build + SSL load + forward (`python workers/A/smoke_test.py`).
+  - `runs/` — `b4_embeddings.pkl`, `branch_b4.csv` (29,529 rows) ready. B3 training in background (1500 steps, ~3h, see PID via `ps -p $(cat workers/A/runs/b3.pid)` if recorded, else `pgrep -f train_b3`). Once it lands → `embed_b3.py` → `pkl_to_branch.py` → `branch_b3.csv`.
+  - SSL weights at `/shared-docker/work/weights/model_swinvit.pt` (`download_swinvit.sh`).
+- `workers/B/` — empty. Hand-off doc at `workers/B/WORKER_B_TASK.md` — paste into a fresh Claude session to start Track B (MIND-SSC descriptor B1 + Stage-2 SynthMorph re-rank).
+- `workers/C/` / `Track C/` — Track C engine.
+  - `trackc.py` — held-out split (seed=0), MRR eval, `rank_by_embeddings`, RRF, submission writer.
+  - `b2_foundation.py` — B2 frozen foundation-model embeddings.
+  - `run_b2.ipynb`, `run_pipeline_c.ipynb`, `run_fuse_submit.ipynb` — drivers.
+  - `NICOLE_TASK.md` — current handoff: add B4 to the RRF, gate on local MRR, submit.
+  - Branch CSVs land here (`branch_baseline.csv`, `branch_b2.csv`, …) → fused into `submission.csv`.
 
-Smoke test for the B3 stack: `python workers/A/smoke_test.py` (needs SSL weights at the path above + a GPU). No `pyproject.toml`, venv, tests, or lint config at repo root yet — run scripts directly with the project venv. The baseline (`slice_clip_baseline.py`) lives in the upstream challenge repo (see §6).
+**Cross-track branch contract:** CSV with columns `query_id, target_id, score` (higher = more similar), one row per (q, t) WITHIN each of the 6 (dataset, split) pools — never across. `trackc.scores_to_rankings(df)` converts to the `{qid: [tid…]}` form `rrf()` consumes.
 
-Clean venv at repo root, Python ≥3.12. Do **not** reuse `~/Desktop/INTERNSHIP` venvs.
+**Embedding contract (Track A intermediate):** `dict[dataset -> {pool_name -> {id_str -> np.ndarray (C,) unit-norm float32}}]` as `.pkl`. `pkl_to_branch.py` converts to the branch CSV.
 
-*Last updated 2026-06-27.*
+**Submission flow:** every branch → its CSV → Nicole's `run_fuse_submit.ipynb` reads all CSVs → `rrf([...])` → `write_submission` → `submission.csv`. Only Track C writes the final file. **Local-MRR gate every submission** — never burn one to measure what `make_local_split(seed=0)` can.
+
+No `pyproject.toml`, venv, tests, or lint config at repo root — run scripts directly with the project venv (Python ≥3.12, clean venv at repo root; do **not** reuse `~/Desktop/INTERNSHIP` venvs). The baseline (`slice_clip_baseline.py`) lives in the upstream challenge repo (see §6).
+
+*Last updated 2026-06-27 (B3 training in flight; B4 V1 + branch CSV shipped; Nicole + Worker B hand-off docs in place).*
