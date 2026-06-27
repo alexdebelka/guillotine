@@ -1,0 +1,175 @@
+{
+  "cli_version": "0.7.7",
+  "checkpoint_id": "413b4a4c91f8",
+  "session_id": "6d10f514-db75-4503-916f-fdb0fa8d5c42",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-27T20:44:29.236881Z",
+  "branch": "main",
+  "checkpoints_count": 7,
+  "save_step_count": 8,
+  "files_touched": [
+    "CLAUDE.md"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "e55d9e394028",
+  "token_usage": {
+    "input_tokens": 74,
+    "cache_creation_tokens": 52747,
+    "cache_read_tokens": 2202980,
+    "output_tokens": 12492,
+    "api_call_count": 34
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-init-2026-06-27T20:16:11.803038Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "init"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "f00113106f97",
+      "timestamp": "2026-06-27T20:16:11.803038Z",
+      "native": {
+        "command": "/init"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/init",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-27T20:44:29.228409Z",
+    "agent_lines": 8,
+    "agent_removed": 3,
+    "human_added": 82,
+    "human_modified": 6,
+    "human_removed": 0,
+    "total_committed": 96,
+    "total_lines_changed": 99,
+    "agent_percentage": 11.11111111111111,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 796,
+      "user_lines_removed": 0,
+      "agent_lines_added": 61347,
+      "agent_lines_removed": 9,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 18,
+        "workers/C/run_b2.ipynb": 221,
+        "workers/C/run_pipeline_c.ipynb": 448
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 796,
+      "user_lines_removed": 0,
+      "agent_lines_added": 61347,
+      "agent_lines_removed": 9,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 18,
+        "workers/C/run_b2.ipynb": 221,
+        "workers/C/run_pipeline_c.ipynb": 448
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 796,
+      "user_lines_removed": 0,
+      "agent_lines_added": 61347,
+      "agent_lines_removed": 9,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 18,
+        "workers/C/run_b2.ipynb": 221,
+        "workers/C/run_pipeline_c.ipynb": 448
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 796,
+      "user_lines_removed": 0,
+      "agent_lines_added": 61347,
+      "agent_lines_removed": 9,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 18,
+        "workers/C/run_b2.ipynb": 221,
+        "workers/C/run_pipeline_c.ipynb": 448
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 796,
+      "user_lines_removed": 0,
+      "agent_lines_added": 61347,
+      "agent_lines_removed": 9,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 18,
+        "workers/C/run_b2.ipynb": 221,
+        "workers/C/run_pipeline_c.ipynb": 448
+      }
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 809,
+      "user_lines_removed": 6,
+      "agent_lines_added": 61347,
+      "agent_lines_removed": 9,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 18,
+        "CLAUDE.md": 13,
+        "workers/C/run_b2.ipynb": 221,
+        "workers/C/run_pipeline_c.ipynb": 448
+      },
+      "user_removed_per_file": {
+        "CLAUDE.md": 6
+      }
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 871,
+      "user_lines_removed": 0,
+      "agent_lines_added": 61354,
+      "agent_lines_removed": 9,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 18,
+        "workers/B/WORKER_B_TASK.md": 75,
+        "workers/C/run_b2.ipynb": 221,
+        "workers/C/run_pipeline_c.ipynb": 448
+      }
+    }
+  ]
+}
