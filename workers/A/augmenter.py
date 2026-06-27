@@ -30,12 +30,15 @@ from monai.transforms import (
 
 
 SEVERITY = {
-    "mild":   dict(hist_p=0.7, gamma=(0.7, 1.5), bias_p=0.3, affine_p=0.6,
-                   rot=0.05, trans=3,  scale=0.03, elastic_p=0.3, sigma=(5, 8), mag=(30, 60)),
-    "medium": dict(hist_p=0.9, gamma=(0.5, 2.0), bias_p=0.5, affine_p=0.8,
-                   rot=0.10, trans=5,  scale=0.05, elastic_p=0.5, sigma=(5, 8), mag=(50, 100)),
-    "heavy":  dict(hist_p=0.95, gamma=(0.4, 2.5), bias_p=0.7, affine_p=0.9,
-                   rot=0.15, trans=8,  scale=0.08, elastic_p=0.7, sigma=(6, 10), mag=(80, 150)),
+    "mild":   dict(hist_p=0.6, gamma=(0.8, 1.3), bias_p=0.15, bias_coeff=(0.0, 0.15),
+                   affine_p=0.6, rot=0.05, trans=3, scale=0.03,
+                   elastic_p=0.3, sigma=(5, 8), mag=(30, 60)),
+    "medium": dict(hist_p=0.8, gamma=(0.7, 1.5), bias_p=0.25, bias_coeff=(0.0, 0.2),
+                   affine_p=0.8, rot=0.10, trans=5, scale=0.05,
+                   elastic_p=0.5, sigma=(5, 8), mag=(50, 100)),
+    "heavy":  dict(hist_p=0.9, gamma=(0.5, 2.0), bias_p=0.4, bias_coeff=(0.0, 0.25),
+                   affine_p=0.9, rot=0.15, trans=8, scale=0.08,
+                   elastic_p=0.7, sigma=(6, 10), mag=(80, 150)),
 }
 
 
@@ -47,7 +50,7 @@ def make_augmenter(spatial_size: Tuple[int, int, int] = (96, 96, 96),
         # contrast — simulates a different MRI sequence
         RandHistogramShiftd(keys="image", num_control_points=8, prob=cfg["hist_p"]),
         RandAdjustContrastd(keys="image", gamma=cfg["gamma"], prob=cfg["hist_p"]),
-        RandBiasFieldd(keys="image", coeff_range=(0.0, 0.3), prob=cfg["bias_p"]),
+        RandBiasFieldd(keys="image", coeff_range=cfg["bias_coeff"], prob=cfg["bias_p"]),
         # geometry — independent rigid + nonlinear per view
         RandAffined(
             keys="image",
