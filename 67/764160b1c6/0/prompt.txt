@@ -1,0 +1,318 @@
+the training is not training
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# cd /shared-docker/work/repo && git pull
+python workers/A/probe_b4_local_mrr.py
+remote: Enumerating objects: 30, done.
+remote: Counting objects: 100% (30/30), done.
+remote: Compressing objects: 100% (13/13), done.
+remote: Total 22 (delta 6), reused 22 (delta 6), pack-reused 0 (from 0)
+Unpacking objects: 100% (22/22), 31.96 KiB | 481.00 KiB/s, done.
+From https://github.com/alexdebelka/guillotine
+   5e50631..177b368  main                  -> origin/main
+   09ab5b6..bff66a7  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Updating 5e50631..177b368
+Fast-forward
+ workers/A/probe_b4_local_mrr.py | 64 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 64 insertions(+)
+ create mode 100644 workers/A/probe_b4_local_mrr.py
+held-out: 50 pairs (dataset1 train, seed=0)
+  embedded 10/50
+  embedded 20/50
+  embedded 30/50
+  embedded 40/50
+  embedded 50/50
+
+B4 V1 local MRR (Level-1, 50 held-out, no deformation) = 0.2989
+  reference baseline (gradient-mag) = 0.7626
+  random                            = 0.02
+  top-1 hits = 8/50root@13ebd1a804d0:/shared-docker/work/repo# ps -p 9005 -o pid,stat,etime,cmd
+tail -50 workers/A/runs/b3_run1.log
+ls -la workers/A/runs/
+    PID STAT     ELAPSED CMD
+   9005 Sl         12:16 python workers/A/train_b3.py --pairs-csv /shared-docker/data/dataset1/train_pairs.csv --steps 1500 --log-every 25 --batch-size 16 --severity mild 
+nohup: ignoring input
+SSL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+pooled feature dim (all stages, avg+max): 2976
+step     0  loss 4.4189  avg10 4.4189  inp_std 0.426  enc Δ +0.003 (d+0.980/o+0.978)  head Δ +0.122 (d+0.294/o+0.173)  t 16.7s
+step    25  loss 2.6876  avg10 2.5775  inp_std 0.452  enc Δ -0.004 (d+0.949/o+0.953)  head Δ +0.052 (d+0.812/o+0.760)  t 224.5s
+step    50  loss 2.0868  avg10 2.3088  inp_std 0.428  enc Δ +0.003 (d+0.979/o+0.977)  head Δ +0.180 (d+0.864/o+0.683)  t 435.1s
+step    75  loss 2.2236  avg10 1.9599  inp_std 0.447  enc Δ -0.001 (d+0.972/o+0.973)  head Δ +0.180 (d+0.791/o+0.611)  t 636.2s
+total 12116
+drwxr-xr-x 2 root root     4096 Jun 27 19:29 .
+drwxr-xr-x 4 root root     4096 Jun 27 19:41 ..
+-rw-r--r-- 1 root root      656 Jun 27 19:41 b3_run1.log
+-rw-r--r-- 1 root root 12393989 Jun 27 19:28 b4_embeddings.pkl
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+this is the path you asked for Nicole/b2_foundation.py , the python file is one of the files from there.
+
+---
+
+The contents are the same as Track C in this repo
+
+---
+
+What should I do while I wait for the run of 3h?
+
+---
+
+This is Nicole's folder on the jupyter [Image #4]
+
+---
+
+how can I verify the our run on jupyter
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# cp /shared-docker/work/Nicole/trackc.py workers/C/
+cp /shared-docker/work/Nicole/run_b2.ipynb workers/C/   # if changed
+git add workers/C/ && git commit -m "Track C: pull trackc.py and Nicole's notebooks into the repo" && git push
+cp: cannot stat '/shared-docker/work/Nicole/trackc.py': No such file or directory
+cp: cannot stat '/shared-docker/work/Nicole/run_b2.ipynb': No such file or directory
+warning: could not open directory 'workers/C/': No such file or directory
+fatal: pathspec 'workers/C/' did not match any files
+root@13ebd1a804d0:/shared-docker/work/repo# head -3 /shared-docker/work/Nicole/branch_b2.csv
+head -3 /shared-docker/work/Nicole/branch_baseline.csv
+cat /shared-docker/work/Nicole/trackc.py | head -200
+head: cannot open '/shared-docker/work/Nicole/branch_b2.csv' for reading: No such file or directory
+head: cannot open '/shared-docker/work/Nicole/branch_baseline.csv' for reading: No such file or directory
+cat: /shared-docker/work/Nicole/trackc.py: No such file or directory
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# find / -type d -name "Nicole" 2>/dev/null
+# or look for files we know are in there
+find / -name "trackc.py" 2>/dev/null
+find / -name "branch_b2.csv" 2>/dev/null
+/shared-docker/Nicole
+/shared-docker/Nicole/Nicole_first submission/trackc.py
+/shared-docker/Nicole/trackc.py
+/shared-docker/Nicole/Nicole_first submission/branch_b2.csv
+/shared-docker/Nicole/branch_b2.csv
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+oot@13ebd1a804d0:/shared-docker/work/repo# mkdir -p workers/C/
+cp /shared-docker/Nicole/trackc.py workers/C/
+cp /shared-docker/Nicole/run_b2.ipynb workers/C/
+cp /shared-docker/Nicole/run_fuse_submit.ipynb workers/C/
+ls workers/C/
+run_b2.ipynb  run_fuse_submit.ipynb  trackc.py
+root@13ebd1a804d0:/shared-docker/work/repo# head -3 /shared-docker/Nicole/branch_b2.csv
+head -3 /shared-docker/Nicole/branch_baseline.csv
+wc -l /shared-docker/Nicole/trackc.py
+head -200 /shared-docker/Nicole/trackc.py
+query_id,target_id,score
+q_0f96c625b9cd,g_f9d76f64d617,0.9586703181266785
+q_0f96c625b9cd,g_7944a8a0c287,0.9207425117492676
+query_id,target_id,score
+q_0f96c625b9cd,g_f9d76f64d617,0.5286798477172852
+q_0f96c625b9cd,g_7944a8a0c287,0.5473319888114929
+313 /shared-docker/Nicole/trackc.py
+"""
+Track C engine — EHL Paris 2026 cross-modal MRI retrieval.
+
+Owns the shared infrastructure the whole team plugs into:
+  1. Data manifest / robust path resolution         -> load_manifest, resolve_image
+  2. Shared preprocessing (resample 1mm + z-score)  -> load_volume
+  3. Local MRR harness + 300/50 split + L2 proxy    -> mrr, make_local_split, deform_volume
+  4. Reciprocal Rank Fusion                          -> rrf
+  5. submission.csv writer + validator               -> write_submission, validate_submission
+  6. Cheap baseline branch (pipeline smoke test)     -> embed_baseline, rank_by_embeddings
+
+Branch contract (every branch -> Track C):
+    a CSV / DataFrame with columns [query_id, target_id, score]   (higher score = more similar)
+RRF and the submission writer are the ONLY things that produce the final file.
+
+Pure-Python where possible; heavy deps (nibabel, scipy) are imported lazily so the
+metric self-test runs anywhere. Run `python trackc.py` to execute the self-tests.
+"""
+from __future__ import annotations
+
+import os
+import glob
+from dataclasses import dataclass
+
+import numpy as np
+import pandas as pd
+
+# ----------------------------------------------------------------------------- config
+DATA_ROOT = "data"                       # folder containing dataset1/2/3 (edit if needed)
+DATASETS = ["dataset1", "dataset2", "dataset3"]
+SPLITS = ["val", "test"]                 # the 6 submission pools = DATASETS x SPLITS
+RRF_K = 60                               # RRF damping constant (Cormack 2009 default)
+SEED = 0
+
+# Official submission format (from the challenge brief). One combined CSV:
+#   query_id,target_id_ranking      with target_ids SPACE-separated, most -> least similar.
+SUBMISSION_COLS = ["query_id", "target_id_ranking"]
+RANKING_SEP = " "
+
+
+# ============================================================ 1. manifest & path resolve
+def resolve_image(rel_or_abs_path: str, data_root: str = DATA_ROOT) -> str:
+    """Return an existing file path. CSVs reference '.nii.gz' but some files are '.nii';
+    try the given path, then swap the extension, under data_root and as-is."""
+    cands = []
+    p = rel_or_abs_path
+    for base in (p, os.path.join(data_root, p)):
+        cands.append(base)
+        if base.endswith(".nii.gz"):
+            cands.append(base[:-3])          # -> .nii
+        elif base.endswith(".nii"):
+            cands.append(base + ".gz")       # -> .nii.gz
+    for c in cands:
+        if os.path.exists(c):
+            return c
+    raise FileNotFoundError(f"None of these exist for {rel_or_abs_path!r}: {cands}")
+
+
+@dataclass
+class Pool:
+    """One (dataset, split) retrieval pool."""
+    dataset: str
+    split: str
+    queries: pd.DataFrame          # cols: query_id, query_image[, ...]
+    gallery: pd.DataFrame          # cols: target_id, target_image[, ...]
+
+    @property
+    def query_ids(self):  return self.queries["query_id"].tolist()
+    @property
+    def gallery_ids(self): return self.gallery["target_id"].tolist()
+
+
+def load_manifest(data_root: str = DATA_ROOT) -> dict:
+    """Read every queries/gallery CSV into a {(dataset, split): Pool} dict.
+    Also attaches manifest['train_pairs'] = labeled dataset1 pairs DataFrame."""
+    manifest = {}
+    for ds in DATASETS:
+        for split in SPLITS:
+            qcsv = os.path.join(data_root, ds, f"{split}_queries.csv")
+            gcsv = os.path.join(data_root, ds, f"{split}_gallery.csv")
+            if os.path.exists(qcsv) and os.path.exists(gcsv):
+                manifest[(ds, split)] = Pool(
+                    ds, split, pd.read_csv(qcsv), pd.read_csv(gcsv)
+                )
+    tp = os.path.join(data_root, "dataset1", "train_pairs.csv")
+    manifest["train_pairs"] = pd.read_csv(tp) if os.path.exists(tp) else None
+    return manifest
+
+
+def manifest_summary(manifest: dict) -> pd.DataFrame:
+    rows = []
+    for key, pool in manifest.items():
+        if key == "train_pairs":
+            continue
+        rows.append({"dataset": pool.dataset, "split": pool.split,
+                     "n_queries": len(pool.queries), "n_gallery": len(pool.gallery)})
+    df = pd.DataFrame(rows).sort_values(["dataset", "split"]).reset_index(drop=True)
+    total_q = df["n_queries"].sum()
+    print(df.to_string(index=False))
+    print(f"TOTAL query rows (submission length) = {total_q}  (expect 377)")
+    tp = manifest.get("train_pairs")
+    print(f"labeled train pairs (dataset1)        = {0 if tp is None else len(tp)}  (expect 350)")
+    return df
+
+
+# ============================================================ 2. preprocessing / loading
+def load_volume(path, resample_1mm=True, zscore=True, data_root=DATA_ROOT):
+    """Load a NIfTI volume as float32 np.ndarray. Resample to 1mm iso + per-volume z-score.
+    Lazy-imports nibabel/scipy so the rest of the module works without them."""
+    import nibabel as nib
+    img = nib.load(resolve_image(path, data_root))
+    if resample_1mm:
+        from nibabel.processing import resample_to_output
+        img = resample_to_output(img, voxel_sizes=(1.0, 1.0, 1.0), order=1)
+    vol = np.asarray(img.get_fdata(), dtype=np.float32)
+    if zscore:
+        m, s = float(vol.mean()), float(vol.std())
+        vol = (vol - m) / (s + 1e-6)
+    return vol
+
+
+def resize_to(vol: np.ndarray, shape=(64, 64, 64)) -> np.ndarray:
+    """Trilinear resize to a fixed shape (for cheap fixed-length descriptors)."""
+    from scipy.ndimage import zoom
+    factors = [t / s for t, s in zip(shape, vol.shape)]
+    return zoom(vol, factors, order=1).astype(np.float32)
+
+
+# ============================================================ 3. MRR harness + split + L2
+def mrr(rankings: dict, ground_truth: dict) -> float:
+    """rankings: {query_id: [target_id ordered most->least similar]}.
+    ground_truth: {query_id: true_target_id}. Returns mean reciprocal rank.
+    RR = 1/rank of the true target (1-indexed); 0 if absent."""
+    rrs = []
+    for q, truth in ground_truth.items():
+        ranked = rankings.get(q, [])
+        rr = 0.0
+        for i, t in enumerate(ranked, start=1):
+            if t == truth:
+                rr = 1.0 / i
+                break
+        rrs.append(rr)
+    return float(np.mean(rrs)) if rrs else 0.0
+
+
+def make_local_split(train_pairs: pd.DataFrame, n_holdout=50, seed=SEED):
+    """Split the 350 labeled dataset1 pairs into train / held-out gallery+query.
+    The held-out set is a self-contained retrieval problem: its queries are ranked
+    against ONLY its own targets (a clean MRR proxy for Level-1).
+    Returns (train_df, holdout_df, ground_truth{query_id: target_id})."""
+    rng = np.random.default_rng(seed)
+    idx = rng.permutation(len(train_pairs))
+    hold = train_pairs.iloc[idx[:n_holdout]].reset_index(drop=True)
+    train = train_pairs.iloc[idx[n_holdout:]].reset_index(drop=True)
+    gt = dict(zip(hold["query_id"], hold["target_id"]))
+    return train, hold, gt
+
+
+def deform_volume(vol: np.ndarray, rng=None, max_rot_deg=10.0,
+                  max_shift=8.0, elastic_sigma=12.0, elastic_alpha=18.0):
+    """Independent random rigid (rotation+shift) + nonlinear (elastic) deformation.
+    Apply to held-out volumes to build the Level-2 (deformation) MRR proxy offline."""
+    from scipy.ndimage import rotate, shift, gaussian_filter, map_coordinates
+    rng = rng or np.random.default_rng()
+    v = vol
+    # rigid: small rotations about each axis + translation
+    for axes in [(0, 1), (0, 2), (1, 2)]:
+        ang = rng.uniform(-max_rot_deg, max_rot_deg)
+        v = rotate(v, ang, axes=axes, reshape=False, order=1, mode="nearest")
+    v = shift(v, rng.uniform(-max_shift, max_shift, size=3), order=1, mode="nearest")
+    # nonlinear: smooth random displacement field
+    coords = np.meshgrid(*[np.arange(s) for s in v.shape], indexing="ij")
+    disp = [gaussian_filter(rng.uniform(-1, 1, v.shape), elastic_sigma) * elastic_alpha
+            for _ in range(3)]
+    warped = [c + d for c, d in zip(coords, disp)]
+    v = map_coordinates(v, warped, order=1, mode="nearest").reshape(v.shape)
+    return v.astype(np.float32)
+
+
+# ============================================================ 4. Reciprocal Rank Fusion
+def rrf(branch_rankings: list, weights=None, k=RRF_K) -> dict:
+    """Fuse multiple branch rankings. Each element of branch_rankings is
+    {query_id: [target_id ordered most->least similar]}. Returns fused
+    {query_id: [target_id ...]}. weights: optional list, one per branch."""
+    weights = weights or [1.0] * len(branch_rankings)
+    assert len(weights) == len(branch_rankings)
+    queries = set().union(*[set(r) for r in branch_rankings]) if branch_rankings else set()
+    fused = {}
+    for q in queries:
+        scores = {}
+        for w, ranking in zip(weights, branch_rankings):
+            for rank, t in enumerate(ranking.get(q, []), start=1):
+                scores[t] = scores.get(t, 0.0) + w / (k + rank)
+        fused[q] = [t for t, _ in sorted(scores.items(), key=lambda x: -x[1])]
+    return fused
+
+
+def scores_to_rankings(df: pd.DataFrame) -> dict:
+    """Convert a branch's [query_id, target_id, score] table into
+    {query_id: [target_id ordered by descending score]}."""
+root@13ebd1a804d0:/shared-docker/work/repo#
