@@ -1,0 +1,56 @@
+# Task for Nicole's Claude
+
+## Context (read first)
+- 24h hackathon, EHL Paris 2026 cross-modal MRI retrieval (ceT1 → T2 same-subject re-id). See repo `CLAUDE.md`.
+- You are **Track C**: eval harness, RRF, submission writer. Your code is in `/shared-docker/Nicole/` and now mirrored in `workers/C/` in the repo.
+- **Branch contract**: every branch outputs CSV `query_id,target_id,score` (higher = more similar). RRF in `trackc.py` fuses them.
+- **Submission budget: 100/day.** Never burn one to measure what local MRR can measure.
+
+## What's new from Alex (Track A)
+1. **B4 V1 shape fingerprint** ready:
+   - embeddings: `/shared-docker/work/repo/workers/A/runs/b4_embeddings.pkl`
+   - branch CSV: `/shared-docker/work/repo/workers/A/runs/branch_b4.csv` (29,529 rows, all 6 pools)
+   - **Standalone Level-1 MRR: 0.30** (8/50 top-1 hits on the same seed=0 held-out 50 you use).
+   - Pure-geometry, contrast-agnostic — orthogonal to your B2.
+2. **B3** (learned shared encoder) training in background, PID 9005, ETA ~3h. When it finishes, Alex will produce `branch_b3.csv` the same way. Don't wait for it.
+
+## Your job right now
+
+### 1. Add B4 to the fuse cell in `run_fuse_submit.ipynb`
+```python
+import pandas as pd
+from trackc import scores_to_rankings, rrf, mrr
+
+branch_b4 = scores_to_rankings(pd.read_csv(
+    "/shared-docker/work/repo/workers/A/runs/branch_b4.csv"
+))
+# add it to your existing rrf() call:
+fused = rrf([branch_b2, branch_baseline, branch_b4])
+```
+
+### 2. Gate the submission on local MRR (don't burn it blind)
+Compute branch_b4 on the held-out 50 dataset1 pairs (same `make_local_split(seed=0)` you used for baseline). Then:
+```python
+old = rrf([branch_b2_holdout, branch_baseline_holdout])
+new = rrf([branch_b2_holdout, branch_baseline_holdout, branch_b4_holdout])
+print(f"old (B2+baseline) MRR = {mrr(old, gt):.4f}")
+print(f"new (+B4)          MRR = {mrr(new, gt):.4f}")
+```
+
+Decision rule:
+- `new ≥ old + 0.01` → **submit to Kaggle**. Logs the local↔leaderboard delta for the rest of the day.
+- `new < old + 0.01` → don't submit. Either drop B4 or down-weight it: `rrf([...], weights=[1.0, 1.0, 0.3])` and re-measure.
+
+### 3. When B3 lands (Alex will ping)
+- `branch_b3.csv` will appear at `/shared-docker/work/repo/workers/A/runs/branch_b3.csv`
+- Same drill: add to RRF list, gate on local MRR, submit if it lifts.
+
+## Useful state
+- Your previous submission used B2 + baseline only (already on Kaggle). That's the floor to beat.
+- B4 alone is weak (0.30 vs B2's much higher). It's only useful if it's *orthogonal* to B2 — the local check tells you definitively.
+- If local MRR moves but you want to be sure, also check per-dataset MRR before submitting; B4 likely helps d1/d2 more than d3 (where deformation kills mask-shape signals).
+
+## What NOT to do
+- Don't write a new harness — you already have `trackc.py`. Use `scores_to_rankings`, `rrf`, `mrr`, `write_submission`, `validate_submission`.
+- Don't modify `branch_b4.csv` — it's the cross-track interface. If something looks wrong, ping Alex.
+- Don't submit if local MRR doesn't move. We have 100/day but should spend them on real signal, not noise.
