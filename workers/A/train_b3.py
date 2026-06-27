@@ -1,0 +1,148 @@
+"""
+Track A — B3 training loop: ceT1 ↔ T2 contrastive on dataset1 pairs.
+
+Each pair is augmented INDEPENDENTLY (see augmenter.py — that's where the contrast +
+deformation invariances are manufactured). Both views are encoded through SwinUNETR and
+trained with symmetric InfoNCE (CLIP-style). The positive for q_aug[i] is t_aug[i]; all
+other t_aug[j] in the batch are negatives.
+
+Run real training:
+    python workers/A/train_b3.py --pairs-csv $DATA_ROOT/dataset1/train_pairs.csv
+
+Smoke-check the wiring (no data, no GPU required):
+    python workers/A/train_b3.py --smoke
+
+ponytail: one InfoNCE, no temperature schedule, no warmup, no projection head.
+ponytail: upgrade path → add a 2-layer MLP projection if linear probe on val plateaus.
+"""
+from __future__ import annotations
+import argparse
+import os
+import sys
+import time
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from b3_encoder import build_encoder, load_ssl_weights, INPUT_SIZE
+from augmenter import make_augmenter, augment_pair
+from viz_aug import load_and_resize
+
+
+class PairDataset(Dataset):
+    def __init__(self, pairs_csv: str | None, aug, synthetic_n: int | None = None):
+        self.synthetic_n = synthetic_n
+        self.aug = aug
+        self.df = None if synthetic_n else pd.read_csv(pairs_csv).reset_index(drop=True)
+
+    def __len__(self):
+        return self.synthetic_n if self.synthetic_n else len(self.df)
+
+    def __getitem__(self, i):
+        if self.synthetic_n:
+            rng = np.random.default_rng(i)
+            q = rng.standard_normal(INPUT_SIZE).astype(np.float32)
+            t = rng.standard_normal(INPUT_SIZE).astype(np.float32)
+        else:
+            r = self.df.iloc[i]
+            q = load_and_resize(r["query_image"])
+            t = load_and_resize(r["target_image"])
+        q_aug, t_aug = augment_pair(self.aug, q, t)
+        return torch.from_numpy(q_aug)[None], torch.from_numpy(t_aug)[None]  # (1,D,H,W)
+
+
+def encode(model, batch: torch.Tensor) -> torch.Tensor:
+    """batch: (B,1,D,H,W) → (B,C) unit-norm. Same pooling path as b3_encoder.embed."""
+    out = model.swinViT(batch)
+    feat = out[-1] if isinstance(out, (list, tuple)) else out
+    vec = F.adaptive_avg_pool3d(feat, 1).flatten(1)
+    return F.normalize(vec, dim=1)
+
+
+def info_nce(zq: torch.Tensor, zt: torch.Tensor, temp: float = 0.07) -> torch.Tensor:
+    """Symmetric InfoNCE on already-normalized embeddings."""
+    logits = zq @ zt.t() / temp
+    labels = torch.arange(zq.size(0), device=zq.device)
+    return 0.5 * (F.cross_entropy(logits, labels) + F.cross_entropy(logits.t(), labels))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--pairs-csv", required=True)
+    ap.add_argument("--ssl-weights", default="/shared-docker/work/weights/model_swinvit.pt")
+    ap.add_argument("--severity", default="medium", choices=["mild", "medium", "heavy"])
+    ap.add_argument("--batch-size", type=int, default=4)
+    ap.add_argument("--steps", type=int, default=2000)
+    ap.add_argument("--lr", type=float, default=1e-4)
+    ap.add_argument("--temp", type=float, default=0.07)
+    ap.add_argument("--num-workers", type=int, default=2)
+    ap.add_argument("--out", default="b3_ckpt.pt")
+    ap.add_argument("--log-every", type=int, default=10)
+    args = ap.parse_args()
+
+    aug = make_augmenter(spatial_size=INPUT_SIZE, severity=args.severity)
+    ds = PairDataset(args.pairs_csv, aug)
+    loader = DataLoader(ds, batch_size=args.batch_size, shuffle=True,
+                        num_workers=args.num_workers, drop_last=True, pin_memory=True)
+
+    model, device = build_encoder()
+    if os.path.exists(args.ssl_weights):
+        load_ssl_weights(model, args.ssl_weights)
+    else:
+        print(f"WARN: ssl weights not found at {args.ssl_weights} — training from scratch")
+    model.train()
+
+    opt = torch.optim.AdamW(model.swinViT.parameters(), lr=args.lr, weight_decay=1e-4)
+
+    step, t0, losses = 0, time.time(), []
+    while step < args.steps:
+        for q, t in loader:
+            q, t = q.to(device, non_blocking=True), t.to(device, non_blocking=True)
+            zq, zt = encode(model, q), encode(model, t)
+            loss = info_nce(zq, zt, args.temp)
+            opt.zero_grad(); loss.backward(); opt.step()
+            losses.append(loss.item())
+            if step % args.log_every == 0:
+                print(f"step {step:5d}  loss {loss.item():.4f}  "
+                      f"avg10 {np.mean(losses[-10:]):.4f}  "
+                      f"t {time.time()-t0:.1f}s")
+            step += 1
+            if step >= args.steps:
+                break
+
+    torch.save({"swinViT": model.swinViT.state_dict(), "args": vars(args)}, args.out)
+    print(f"saved {args.out}  final_loss={losses[-1]:.4f}")
+
+
+def _smoke():
+    """assert-based wire check: dataset shapes, encoder unit-norm, finite InfoNCE, gradients flow."""
+    aug = make_augmenter(INPUT_SIZE, "medium")
+    ds = PairDataset(None, aug, synthetic_n=4)
+    q0, t0 = ds[0]
+    assert q0.shape == (1, *INPUT_SIZE) and t0.shape == (1, *INPUT_SIZE), \
+        f"bad dataset shape: {q0.shape} {t0.shape}"
+    model, device = build_encoder()
+    model.train()
+    qb = torch.stack([ds[i][0] for i in range(2)]).to(device)
+    tb = torch.stack([ds[i][1] for i in range(2)]).to(device)
+    zq, zt = encode(model, qb), encode(model, tb)
+    assert zq.shape[0] == 2 and zq.shape == zt.shape, f"encode shape: {zq.shape} vs {zt.shape}"
+    assert torch.allclose(zq.norm(dim=1), torch.ones(2, device=device), atol=1e-4), \
+        "encoder output not unit-norm"
+    loss = info_nce(zq, zt)
+    assert torch.isfinite(loss), f"loss not finite: {loss}"
+    loss.backward()
+    has_grad = any(p.grad is not None and p.grad.abs().sum() > 0
+                   for p in model.swinViT.parameters())
+    assert has_grad, "no gradients flowed into swinViT"
+    print(f"smoke OK  device={device}  zq.shape={tuple(zq.shape)}  loss={loss.item():.4f}")
+
+
+if __name__ == "__main__":
+    if "--smoke" in sys.argv:
+        _smoke()
+    else:
+        main()

@@ -147,7 +147,15 @@ uv run slice_clip_baseline.py --data-root "$DATA_ROOT" \
 
 ## 9. Repo state (2026-06-27)
 
-- **No code yet.** Repo currently holds planning docs + reference PDFs only. No `pyproject.toml`, no venv, no tests, no lint config. Build/lint/test commands will be added when code lands — until then, there is nothing to run in this repo. The baseline lives in the upstream challenge repo (see §6).
-- When adding code: clean venv at repo root, Python ≥3.12, `uv` for the baseline. Do **not** reuse `~/Desktop/INTERNSHIP` venvs.
+Code lives under `workers/<track>/`, one directory per teammate track from `docs/ROADMAP.md`:
+- `workers/A/` — Track A (Alex): B3 learned encoder + B4 shape. Currently: `b3_encoder.py` (SwinUNETR + MONAI SSL weight loader, embeds to unit-norm `(C,)` float32), `augmenter.py` (synth-contrast + independent deformation per view, MONAI `Compose`), `smoke_test.py`, `viz_aug.py`, `download_swinvit.sh`. SSL weights expected at `/shared-docker/work/weights/model_swinvit.pt`. Input size `(96,96,96)`.
+- `workers/B/` — Track B: MIND-SSC descriptor (B1) + Stage-2 re-rank. (Empty so far.)
+- `workers/C/` — Track C: eval harness + B2 foundation embeddings + RRF + submission writer. Currently notebooks: `run_b2.ipynb`, `run_pipeline_c.ipynb`.
 
-*Status: planning complete; implementation not started. Last updated 2026-06-27.*
+**Embedding contract across tracks:** `dict[id_str -> np.ndarray (C,) unit-norm float32]` → drops into Track C's `rank_by_embeddings` / RRF without conversion. Each branch outputs a ranking; only Track C writes the submission file.
+
+Smoke test for the B3 stack: `python workers/A/smoke_test.py` (needs SSL weights at the path above + a GPU). No `pyproject.toml`, venv, tests, or lint config at repo root yet — run scripts directly with the project venv. The baseline (`slice_clip_baseline.py`) lives in the upstream challenge repo (see §6).
+
+Clean venv at repo root, Python ≥3.12. Do **not** reuse `~/Desktop/INTERNSHIP` venvs.
+
+*Last updated 2026-06-27.*
