@@ -1,1 +1,5 @@
 /init
+
+---
+
+[Image #1] Worker B has finished their part of work and I would like to review it and see what is their next step and what should we do. WE should find the paths
