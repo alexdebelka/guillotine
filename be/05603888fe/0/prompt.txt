@@ -1,0 +1,23 @@
+root@13ebd1a804d0:/shared-docker/work/repo# cd /shared-docker/work/repo && git pull
+python workers/A/train_b3.py \
+  --pairs-csv "$DATA_ROOT/dataset1/train_pairs.csv" \
+  --steps 100 --log-every 5 --batch-size 16 --severity mild \
+  --out /tmp/b3_probe5.pt
+remote: Enumerating objects: 32, done.
+remote: Counting objects: 100% (32/32), done.
+remote: Compressing objects: 100% (13/13), done.
+remote: Total 22 (delta 6), reused 22 (delta 6), pack-reused 0 (from 0)
+Unpacking objects: 100% (22/22), 150.27 KiB | 2.18 MiB/s, done.
+From https://github.com/alexdebelka/guillotine
+   341b377..7b84840  main                  -> origin/main
+   50926be..fc833ef  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Updating 341b377..7b84840
+Fast-forward
+ workers/A/train_b3.py | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+SSL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+step     0  loss 2.7946  avg10 2.7946  diag +0.985  off +0.986  Δ -0.002  |z| 1.000  t 23.8s
+step     5  loss 2.7687  avg10 2.7768  diag +0.999  off +0.998  Δ +0.000  |z| 1.000  t 41.7s
+step    10  loss 2.7726  avg10 2.7739  diag +1.000  off +1.000  Δ -0.000  |z| 1.000  t 81.1s
+step    15  loss 2.7725  avg10 2.7735  diag +1.000  off +1.000  Δ +0.000  |z| 1.000  t 113.2s
+step    20  loss 2.7726  avg10 2.7726  diag +1.000  off +1.000  Δ +0.000  |z| 1.000  t 155.7s
