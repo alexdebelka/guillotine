@@ -147,7 +147,8 @@ uv run slice_clip_baseline.py --data-root "$DATA_ROOT" \
 
 ## 9. Repo state (2026-06-27)
 
-- **No code yet.** Repo currently holds planning docs + reference PDFs only. No `pyproject.toml`, no venv, no tests, no lint config. Build/lint/test commands will be added when code lands — until then, there is nothing to run in this repo. The baseline lives in the upstream challenge repo (see §6).
+- **Track B scaffold added.** Repo now includes a minimal `track_b/` package plus `pyproject.toml` for the training-free descriptor and label-free rerank path.
+- The rest of the repo is still planning/docs-heavy; no dataset wiring, no evaluation harness, and no tests for the new code yet.
 - When adding code: clean venv at repo root, Python ≥3.12, `uv` for the baseline. Do **not** reuse `~/Desktop/INTERNSHIP` venvs.
 
-*Status: planning complete; implementation not started. Last updated 2026-06-27.*
+*Status: Track B scaffold added; broader implementation still pending. Last updated 2026-06-27.*

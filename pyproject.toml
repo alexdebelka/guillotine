@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guillotine-track-b"
+version = "0.1.0"
+description = "Track B utilities for contrast-agnostic brain MRI retrieval"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=1.26",
+  "torch>=2.2",
+  "nibabel>=5.2",
+]
+
+[tool.setuptools]
+packages = ["track_b"]
+
