@@ -1,0 +1,75 @@
+{
+  "cli_version": "0.7.7",
+  "checkpoint_id": "1e2134e5c987",
+  "session_id": "56001ffa-ad32-40a2-85c3-3c4bc55a8c35",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-27T20:56:24.760481Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "9a7e43b0ebe4",
+  "checkpoint_transcript_start": 615,
+  "transcript_lines_at_start": 615,
+  "token_usage": {
+    "input_tokens": 16,
+    "cache_creation_tokens": 8033,
+    "cache_read_tokens": 1490050,
+    "output_tokens": 8885,
+    "api_call_count": 6
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-init-2026-06-27T16:07:15.971918Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "init"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "95dcde83c31e",
+      "timestamp": "2026-06-27T16:07:15.971918Z",
+      "native": {
+        "command": "/init"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/init",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 44
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 62123,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 18,
+        "Track C/Untitled.ipynb": 330,
+        "Track C/b2_foundation.py": 114,
+        "Track C/branch_b2.csv": 29530,
+        "Track C/branch_baseline.csv": 29530,
+        "Track C/run_b2.ipynb": 248,
+        "Track C/run_fuse_submit.ipynb": 412,
+        "Track C/run_pipeline_c.ipynb": 472,
+        "Track C/submission.csv": 378,
+        "Track C/trackc.py": 313,
+        "workers/C/run_b2.ipynb": 221,
+        "workers/C/run_pipeline_c.ipynb": 448
+      }
+    }
+  ]
+}
