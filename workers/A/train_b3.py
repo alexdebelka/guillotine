@@ -133,7 +133,7 @@ def main():
         load_ssl_weights(model, args.ssl_weights)
     else:
         print(f"WARN: ssl weights not found at {args.ssl_weights} — training from scratch")
-    head = ProjHead(in_dim=768).to(device)
+    head = ProjHead().to(device)
     model.train(); head.train()
 
     opt = torch.optim.AdamW([
@@ -182,7 +182,7 @@ def _smoke():
     assert q0.shape == (1, *INPUT_SIZE) and t0.shape == (1, *INPUT_SIZE), \
         f"bad dataset shape: {q0.shape} {t0.shape}"
     model, device = build_encoder()
-    head = ProjHead(in_dim=768).to(device)
+    head = ProjHead().to(device)
     model.train(); head.train()
     qb = torch.stack([ds[i][0] for i in range(2)]).to(device)
     tb = torch.stack([ds[i][1] for i in range(2)]).to(device)
