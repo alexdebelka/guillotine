@@ -1,0 +1,58 @@
+oot@13ebd1a804d0:/shared-docker/work/repo# cd /shared-docker/work/repo && git pull
+python workers/A/train_b3.py --smoke
+python workers/A/train_b3.py \
+  --pairs-csv "$DATA_ROOT/dataset1/train_pairs.csv" \
+  --steps 200 --log-every 10 --batch-size 16 --severity mild \
+  --out /tmp/b3_probe8.pt
+remote: Enumerating objects: 31, done.
+remote: Counting objects: 100% (31/31), done.
+remote: Compressing objects: 100% (13/13), done.
+remote: Total 22 (delta 6), reused 22 (delta 6), pack-reused 0 (from 0)
+Unpacking objects: 100% (22/22), 230.37 KiB | 3.34 MiB/s, done.
+From https://github.com/alexdebelka/guillotine
+   fd09a44..4a23731  main                  -> origin/main
+   6981f34..0f773de  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Updating fd09a44..4a23731
+Fast-forward
+ workers/A/train_b3.py | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+pooled feature dim (all stages, avg+max): 2976
+smoke OK  device=cuda  zq.shape=(2, 128)  loss=0.0261
+SSL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+pooled feature dim (all stages, avg+max): 2976
+step     0  loss 3.2287  avg10 3.2287  inp_std 0.435  enc Δ +0.007 (d+0.984/o+0.977)  head Δ +0.215 (d+0.351/o+0.136)  t 20.6s
+step    10  loss 2.7747  avg10 3.9196  inp_std 0.425  enc Δ -0.003 (d+0.959/o+0.962)  head Δ +0.065 (d+0.801/o+0.736)  t 100.7s
+step    20  loss 2.7526  avg10 2.7050  inp_std 0.437  enc Δ -0.006 (d+0.964/o+0.970)  head Δ +0.045 (d+0.868/o+0.823)  t 173.9s
+step    30  loss 2.4857  avg10 2.6129  inp_std 0.425  enc Δ -0.002 (d+0.963/o+0.966)  head Δ +0.089 (d+0.907/o+0.818)  t 257.6s
+step    40  loss 2.6742  avg10 2.5384  inp_std 0.471  enc Δ +0.001 (d+0.975/o+0.973)  head Δ +0.038 (d+0.904/o+0.866)  t 330.3s
+step    50  loss 2.7194  avg10 2.5612  inp_std 0.411  enc Δ +0.003 (d+0.973/o+0.970)  head Δ +0.031 (d+0.907/o+0.876)  t 427.6s
+step    60  loss 2.4984  avg10 2.3914  inp_std 0.434  enc Δ +0.000 (d+0.981/o+0.981)  head Δ +0.080 (d+0.888/o+0.808)  t 502.4s
+step    70  loss 2.3368  avg10 2.3537  inp_std 0.474  enc Δ +0.008 (d+0.970/o+0.963)  head Δ +0.108 (d+0.923/o+0.816)  t 586.2s
+
+---
+
+smoke OK  device=cuda  zq.shape=(2, 128)  loss=0.0261
+SSL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+pooled feature dim (all stages, avg+max): 2976
+step     0  loss 3.2287  avg10 3.2287  inp_std 0.435  enc Δ +0.007 (d+0.984/o+0.977)  head Δ +0.215 (d+0.351/o+0.136)  t 20.6s
+step    10  loss 2.7747  avg10 3.9196  inp_std 0.425  enc Δ -0.003 (d+0.959/o+0.962)  head Δ +0.065 (d+0.801/o+0.736)  t 100.7s
+step    20  loss 2.7526  avg10 2.7050  inp_std 0.437  enc Δ -0.006 (d+0.964/o+0.970)  head Δ +0.045 (d+0.868/o+0.823)  t 173.9s
+step    30  loss 2.4857  avg10 2.6129  inp_std 0.425  enc Δ -0.002 (d+0.963/o+0.966)  head Δ +0.089 (d+0.907/o+0.818)  t 257.6s
+step    40  loss 2.6742  avg10 2.5384  inp_std 0.471  enc Δ +0.001 (d+0.975/o+0.973)  head Δ +0.038 (d+0.904/o+0.866)  t 330.3s
+step    50  loss 2.7194  avg10 2.5612  inp_std 0.411  enc Δ +0.003 (d+0.973/o+0.970)  head Δ +0.031 (d+0.907/o+0.876)  t 427.6s
+step    60  loss 2.4984  avg10 2.3914  inp_std 0.434  enc Δ +0.000 (d+0.981/o+0.981)  head Δ +0.080 (d+0.888/o+0.808)  t 502.4s
+step    70  loss 2.3368  avg10 2.3537  inp_std 0.474  enc Δ +0.008 (d+0.970/o+0.963)  head Δ +0.108 (d+0.923/o+0.816)  t 586.2s
+step    80  loss 2.2371  avg10 2.3512  inp_std 0.404  enc Δ +0.001 (d+0.985/o+0.985)  head Δ +0.194 (d+0.856/o+0.662)  t 670.7s
+step    90  loss 1.9959  avg10 2.2976  inp_std 0.446  enc Δ +0.004 (d+0.988/o+0.984)  head Δ +0.170 (d+0.887/o+0.717)  t 764.5s
+step   100  loss 2.1406  avg10 2.1041  inp_std 0.405  enc Δ +0.001 (d+0.990/o+0.989)  head Δ +0.242 (d+0.827/o+0.585)  t 845.9s
+step   110  loss 1.8424  avg10 2.1014  inp_std 0.424  enc Δ +0.002 (d+0.989/o+0.987)  head Δ +0.280 (d+0.855/o+0.575)  t 923.2s
+step   120  loss 1.7633  avg10 1.9407  inp_std 0.439  enc Δ +0.002 (d+0.994/o+0.992)  head Δ +0.264 (d+0.864/o+0.601)  t 1004.4s
+step   130  loss 1.4234  avg10 1.6690  inp_std 0.410  enc Δ +0.001 (d+0.991/o+0.989)  head Δ +0.458 (d+0.869/o+0.410)  t 1096.0s
+step   140  loss 1.5683  avg10 1.7433  inp_std 0.433  enc Δ +0.001 (d+0.995/o+0.994)  head Δ +0.316 (d+0.826/o+0.510)  t 1175.4s
+step   150  loss 1.9489  avg10 1.5380  inp_std 0.379  enc Δ +0.001 (d+0.995/o+0.993)  head Δ +0.427 (d+0.753/o+0.326)  t 1248.9s
+step   160  loss 1.1167  avg10 1.4498  inp_std 0.440  enc Δ +0.002 (d+0.995/o+0.993)  head Δ +0.468 (d+0.837/o+0.369)  t 1330.0s
+step   170  loss 0.9264  avg10 1.3161  inp_std 0.382  enc Δ +0.002 (d+0.994/o+0.993)  head Δ +0.540 (d+0.836/o+0.296)  t 1421.0s
+step   180  loss 1.4844  avg10 1.3613  inp_std 0.404  enc Δ +0.002 (d+0.994/o+0.992)  head Δ +0.507 (d+0.774/o+0.266)  t 1502.9s
+step   190  loss 1.1218  avg10 1.3434  inp_std 0.426  enc Δ +0.002 (d+0.996/o+0.994)  head Δ +0.550 (d+0.798/o+0.248)  t 1580.8s
+saved /tmp/b3_probe8.pt  final_loss=1.0733
+root@13ebd1a804d0:/shared-docker/work/repo#
