@@ -1,0 +1,14 @@
+npacking objects: 100% (22/22), 7.83 KiB | 229.00 KiB/s, done.
+From https://github.com/alexdebelka/guillotine
+   3486dc1..cc3e520  main                  -> origin/main
+   1d575ca..53c93b2  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Updating 3486dc1..cc3e520
+Fast-forward
+ workers/A/train_b3.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+smoke OK  device=cuda  zq.shape=(2, 128)  loss=0.7944
+SSL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+step     0  loss 2.7859  avg10 2.7859  enc Δ +0.001 (d+0.972/o+0.971)  head Δ +0.000 (d+0.973/o+0.973)  t 24.7s
+step     5  loss 2.7727  avg10 2.7749  enc Δ +0.000 (d+0.998/o+0.998)  head Δ -0.000 (d+0.999/o+0.999)  t 46.8s
+step    10  loss 2.7730  avg10 2.7726  enc Δ -0.000 (d+0.998/o+0.998)  head Δ -0.000 (d+1.000/o+1.000)  t 92.9s
+step    15  loss 2.7714  avg10 2.7721  enc Δ +0.000 (d+0.994/o+0.994)  head Δ +0.000 (d+0.999/o+0.999)  t 127.0s
