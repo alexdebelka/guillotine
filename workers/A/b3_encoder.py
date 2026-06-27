@@ -27,7 +27,6 @@ def build_encoder(device: str | None = None):
     model = SwinUNETR(
         in_channels=1,
         out_channels=1,
-        img_size=INPUT_SIZE,
         feature_size=48,
         use_checkpoint=False,
     ).to(device).eval()
