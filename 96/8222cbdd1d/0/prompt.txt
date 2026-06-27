@@ -1,0 +1,128 @@
+root@13ebd1a804d0:/shared-docker/work/repo/workers/A# git pull
+python workers/A/train_b3.py --smoke
+Already up to date.
+python: can't open file '/shared-docker/work/repo/workers/A/workers/A/train_b3.py': [Errno 2] No such file or directory
+root@13ebd1a804d0:/shared-docker/work/repo/workers/A#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo/workers/A# cd /shared-docker/work/repo
+git pull
+python workers/A/train_b3.py --smoke
+remote: Enumerating objects: 45, done.
+remote: Counting objects: 100% (45/45), done.
+remote: Compressing objects: 100% (21/21), done.
+remote: Total 39 (delta 13), reused 39 (delta 13), pack-reused 0 (from 0)
+Unpacking objects: 100% (39/39), 863.25 KiB | 5.43 MiB/s, done.
+From https://github.com/alexdebelka/guillotine
+   9015e40..12aae9b  main                  -> origin/main
+   25c98e9..006168b  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Updating 9015e40..12aae9b
+Fast-forward
+ .gitignore            |   1 +
+ CLAUDE.md             |  14 +++++++++++---
+ workers/A/train_b3.py | 148 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 160 insertions(+), 3 deletions(-)
+ create mode 100644 workers/A/train_b3.py
+smoke OK  device=cuda  zq.shape=(2, 768)  loss=0.6936
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+is it okay? root@13ebd1a804d0:/shared-docker/work/repo# echo "DATA_ROOT=$DATA_ROOT"
+ls -lh /shared-docker/work/weights/model_swinvit.pt
+ls "$DATA_ROOT/dataset1/train_pairs.csv"
+python workers/A/train_b3.py \
+  --pairs-csv "$DATA_ROOT/dataset1/train_pairs.csv" \
+  --steps 50 --log-every 5 --batch-size 4 \
+  --out /tmp/b3_probe.pt
+DATA_ROOT=/shared-docker/data
+-rw-r--r-- 1 root root 393M Jun 27 14:59 /shared-docker/work/weights/model_swinvit.pt
+/shared-docker/data/dataset1/train_pairs.csv
+SSL load: matched 94/126 swinViT tensors (missing 32, unexpected 40)
+step     0  loss 2.3857  avg10 2.3857  t 15.9s
+step     5  loss 1.3384  avg10 1.5071  t 20.5s
+step    10  loss 1.3670  avg10 1.3388  t 32.1s
+
+---
+
+root@13ebd1a804d0:/shared-docker/work# python -c "
+import torch
+ckpt = torch.load('/shared-docker/work/weights/model_swinvit.pt', map_location='cpu', weights_only=False)
+state = ckpt.get('state_dict', ckpt)
+print('top-level ckpt keys:', list(ckpt.keys())[:5] if isinstance(ckpt, dict) else type(ckpt))
+print()
+print('first 10 weight keys:')
+for k in list(state.keys())[:10]: print(' ', k)
+print()
+print('total keys in ckpt:', len(state))
+"
+top-level ckpt keys: ['epoch', 'state_dict', 'optimizer']
+
+first 10 weight keys:
+  module.patch_embed.proj.weight
+  module.patch_embed.proj.bias
+  module.layers1.0.blocks.0.norm1.weight
+  module.layers1.0.blocks.0.norm1.bias
+  module.layers1.0.blocks.0.attn.relative_position_bias_table
+  module.layers1.0.blocks.0.attn.relative_position_index
+  module.layers1.0.blocks.0.attn.qkv.weight
+  module.layers1.0.blocks.0.attn.qkv.bias
+  module.layers1.0.blocks.0.attn.proj.weight
+  module.layers1.0.blocks.0.attn.proj.bias
+
+total keys in ckpt: 134
+root@13ebd1a804d0:/shared-docker/work#
+
+---
+
+SSL load: matched 94/126 swinViT tensors (missing 32, unexpected 40)
+step     0  loss 2.3857  avg10 2.3857  t 15.9s
+step     5  loss 1.3384  avg10 1.5071  t 20.5s
+step    10  loss 1.3670  avg10 1.3388  t 32.1s
+step    15  loss 1.3782  avg10 1.4059  t 44.4s
+step    20  loss 1.3723  avg10 1.4194  t 54.9s
+step    25  loss 1.3839  avg10 1.3820  t 67.6s
+step    30  loss 1.4020  avg10 1.3836  t 76.9s
+step    35  loss 1.3751  avg10 1.3779  t 91.6s
+step    40  loss 1.4429  avg10 1.3850  t 101.8s
+step    45  loss 1.3709  avg10 1.3841  t 114.4s
+saved /tmp/b3_probe.pt  final_loss=1.3244
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work# python -c "
+from monai.networks.nets import SwinUNETR
+m = SwinUNETR(in_channels=1, out_channels=1, feature_size=48, use_checkpoint=False)
+keys = list(m.swinViT.state_dict().keys())
+print('total model swinViT keys:', len(keys))
+print('first 10:')
+for k in keys[:10]: print(' ', k)
+print('last 10:')
+for k in keys[-10:]: print(' ', k)
+"
+total model swinViT keys: 126
+first 10:
+  patch_embed.proj.weight
+  patch_embed.proj.bias
+  layers1.0.blocks.0.norm1.weight
+  layers1.0.blocks.0.norm1.bias
+  layers1.0.blocks.0.attn.relative_position_bias_table
+  layers1.0.blocks.0.attn.relative_position_index
+  layers1.0.blocks.0.attn.qkv.weight
+  layers1.0.blocks.0.attn.qkv.bias
+  layers1.0.blocks.0.attn.proj.weight
+  layers1.0.blocks.0.attn.proj.bias
+last 10:
+  layers4.0.blocks.1.attn.proj.bias
+  layers4.0.blocks.1.norm2.weight
+  layers4.0.blocks.1.norm2.bias
+  layers4.0.blocks.1.mlp.linear1.weight
+  layers4.0.blocks.1.mlp.linear1.bias
+  layers4.0.blocks.1.mlp.linear2.weight
+  layers4.0.blocks.1.mlp.linear2.bias
+  layers4.0.downsample.reduction.weight
+  layers4.0.downsample.norm.weight
+  layers4.0.downsample.norm.bias
+root@13ebd1a804d0:/shared-docker/work#
