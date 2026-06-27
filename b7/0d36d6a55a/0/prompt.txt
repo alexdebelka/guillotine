@@ -1,0 +1,92 @@
+root@13ebd1a804d0:/shared-docker/work# cd /shared-docker/work/repo && git pull
+python workers/A/b4_shape.py --smoke
+python workers/A/b4_shape.py --out workers/A/runs/b4_embeddings.pkl
+remote: Enumerating objects: 31, done.
+remote: Counting objects: 100% (31/31), done.
+remote: Compressing objects: 100% (13/13), done.
+remote: Total 22 (delta 5), reused 22 (delta 5), pack-reused 0 (from 0)
+Unpacking objects: 100% (22/22), 276.02 KiB | 2.58 MiB/s, done.
+From https://github.com/alexdebelka/guillotine
+   d8ea31a..5e50631  main                  -> origin/main
+   1c5bd09..09ab5b6  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Updating d8ea31a..5e50631
+Fast-forward
+ workers/A/b4_shape.py | 142 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 142 insertions(+)
+ create mode 100644 workers/A/b4_shape.py
+smoke OK  dim=4096  |v|=1.0000  two-blob sim=0.9982
+B4 shape fingerprint  grid=16^3  dim=4096
+val_queries.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:07<00:00,  5.57it/s]
+val_gallery.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:05<00:00,  6.89it/s]
+test_queries.csv: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:16<00:00,  5.96it/s]
+test_gallery.csv: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:13<00:00,  7.20it/s]
+val_queries.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:06<00:00,  6.02it/s]
+val_gallery.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:05<00:00,  7.21it/s]
+test_queries.csv: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:16<00:00,  6.16it/s]
+test_gallery.csv: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:13<00:00,  7.47it/s]
+val_queries.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:03<00:00,  5.76it/s]
+val_gallery.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:03<00:00,  5.81it/s]
+test_queries.csv: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 77/77 [00:13<00:00,  5.91it/s]
+test_gallery.csv: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 77/77 [00:12<00:00,  5.99it/s]
+Traceback (most recent call last):
+  File "/shared-docker/work/repo/workers/A/b4_shape.py", line 142, in <module>
+    main()
+  File "/shared-docker/work/repo/workers/A/b4_shape.py", line 99, in main
+    with open(args.out, "wb") as f:
+         ^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'workers/A/runs/b4_embeddings.pkl'
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+This is from the root@13ebd1a804d0:/shared-docker/work/repo# cd /shared-docker/work/repo && git pull
+python workers/A/embed_b3.py --smoke
+remote: Enumerating objects: 31, done.
+remote: Counting objects: 100% (31/31), done.
+remote: Compressing objects: 100% (14/14), done.
+remote: Total 22 (delta 5), reused 22 (delta 5), pack-reused 0 (from 0)
+Unpacking objects: 100% (22/22), 252.97 KiB | 2.84 MiB/s, done.
+From https://github.com/alexdebelka/guillotine
+   4a23731..d8ea31a  main                  -> origin/main
+   0f773de..1c5bd09  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Updating 4a23731..d8ea31a
+Fast-forward
+ workers/A/embed_b3.py | 123 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 123 insertions(+)
+ create mode 100644 workers/A/embed_b3.py
+smoke OK  device=cuda  z.shape=(128,)  |z|=1.0000
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# mkdir -p workers/A/runs
+# kick off the long B3 training in background
+nohup python workers/A/train_b3.py \
+  --pairs-csv "$DATA_ROOT/dataset1/train_pairs.csv" \
+  --steps 1500 --log-every 25 --batch-size 16 --severity mild \
+  --out workers/A/runs/b3_run1.pt \
+  > workers/A/runs/b3_run1.log 2>&1 &
+echo "B3 PID: $!"
+[1] 9005
+B3 PID: 9005
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# mkdir -p workers/A/runs
+python workers/A/b4_shape.py --out workers/A/runs/b4_embeddings.pkl
+B4 shape fingerprint  grid=16^3  dim=4096
+val_queries.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:07<00:00,  5.71it/s]
+val_gallery.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:05<00:00,  6.98it/s]
+test_queries.csv: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:19<00:00,  5.08it/s]
+test_gallery.csv: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:14<00:00,  6.85it/s]
+val_queries.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:07<00:00,  5.53it/s]
+val_gallery.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:07<00:00,  5.39it/s]
+test_queries.csv: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:17<00:00,  5.70it/s]
+test_gallery.csv: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:15<00:00,  6.61it/s]
+val_queries.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:03<00:00,  5.83it/s]
+val_gallery.csv: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:03<00:00,  5.93it/s]
+test_queries.csv: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 77/77 [00:14<00:00,  5.28it/s]
+test_gallery.csv: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 77/77 [00:16<00:00,  4.79it/s]
+saved workers/A/runs/b4_embeddings.pkl  total embeddings: 754
+root@13ebd1a804d0:/shared-docker/work/repo#
