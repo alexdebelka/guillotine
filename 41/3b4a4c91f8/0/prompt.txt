@@ -471,3 +471,7 @@ Decision rule:
 - Don't modify `branch_b4.csv` — it's the cross-track interface. If something looks wrong, ping Alex.
 - Don't submit if local MRR doesn't move. We have 100/day but should spend them on real signal, not noise.
 root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+Update claude.md with what we have. And tell me how can I run worker B's checks on a new session
