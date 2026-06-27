@@ -23,6 +23,7 @@ import time
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
@@ -30,6 +31,20 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from b3_encoder import build_encoder, load_ssl_weights, INPUT_SIZE
 from augmenter import make_augmenter, augment_pair
 from viz_aug import load_and_resize
+
+
+class ProjHead(nn.Module):
+    """SimCLR-style 2-layer projection head. Used only during training; retrieval uses raw encoder."""
+    def __init__(self, in_dim: int = 768, hidden: int = 512, out_dim: int = 128):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden),
+            nn.GELU(),
+            nn.Linear(hidden, out_dim),
+        )
+
+    def forward(self, x):
+        return self.net(x)
 
 
 class PairDataset(Dataset):
@@ -54,11 +69,14 @@ class PairDataset(Dataset):
         return torch.from_numpy(q_aug)[None], torch.from_numpy(t_aug)[None]  # (1,D,H,W)
 
 
-def encode(model, batch: torch.Tensor) -> torch.Tensor:
-    """batch: (B,1,D,H,W) → (B,C) unit-norm. Same pooling path as b3_encoder.embed."""
+def encode(model, batch: torch.Tensor, head: nn.Module | None = None) -> torch.Tensor:
+    """batch: (B,1,D,H,W) → (B,C) unit-norm. If head is given, project before normalizing
+    (training path). Without head, returns raw encoder features (retrieval path)."""
     out = model.swinViT(batch)
     feat = out[-1] if isinstance(out, (list, tuple)) else out
     vec = F.adaptive_avg_pool3d(feat, 1).flatten(1)
+    if head is not None:
+        vec = head(vec)
     return F.normalize(vec, dim=1)
 
 
@@ -77,6 +95,7 @@ def main():
     ap.add_argument("--batch-size", type=int, default=4)
     ap.add_argument("--steps", type=int, default=2000)
     ap.add_argument("--lr", type=float, default=1e-4)
+    ap.add_argument("--head-lr", type=float, default=3e-4, help="higher LR for projection head")
     ap.add_argument("--temp", type=float, default=0.07)
     ap.add_argument("--num-workers", type=int, default=2)
     ap.add_argument("--out", default="b3_ckpt.pt")
@@ -93,15 +112,19 @@ def main():
         load_ssl_weights(model, args.ssl_weights)
     else:
         print(f"WARN: ssl weights not found at {args.ssl_weights} — training from scratch")
-    model.train()
+    head = ProjHead(in_dim=768).to(device)
+    model.train(); head.train()
 
-    opt = torch.optim.AdamW(model.swinViT.parameters(), lr=args.lr, weight_decay=1e-4)
+    opt = torch.optim.AdamW([
+        {"params": model.swinViT.parameters(), "lr": args.lr},
+        {"params": head.parameters(),          "lr": args.head_lr},
+    ], weight_decay=1e-4)
 
     step, t0, losses = 0, time.time(), []
     while step < args.steps:
         for q, t in loader:
             q, t = q.to(device, non_blocking=True), t.to(device, non_blocking=True)
-            zq, zt = encode(model, q), encode(model, t)
+            zq, zt = encode(model, q, head), encode(model, t, head)
             loss = info_nce(zq, zt, args.temp)
             opt.zero_grad(); loss.backward(); opt.step()
             losses.append(loss.item())
@@ -113,7 +136,9 @@ def main():
             if step >= args.steps:
                 break
 
-    torch.save({"swinViT": model.swinViT.state_dict(), "args": vars(args)}, args.out)
+    torch.save({"swinViT": model.swinViT.state_dict(),
+                "head": head.state_dict(),
+                "args": vars(args)}, args.out)
     print(f"saved {args.out}  final_loss={losses[-1]:.4f}")
 
 
@@ -125,19 +150,21 @@ def _smoke():
     assert q0.shape == (1, *INPUT_SIZE) and t0.shape == (1, *INPUT_SIZE), \
         f"bad dataset shape: {q0.shape} {t0.shape}"
     model, device = build_encoder()
-    model.train()
+    head = ProjHead(in_dim=768).to(device)
+    model.train(); head.train()
     qb = torch.stack([ds[i][0] for i in range(2)]).to(device)
     tb = torch.stack([ds[i][1] for i in range(2)]).to(device)
-    zq, zt = encode(model, qb), encode(model, tb)
+    zq, zt = encode(model, qb, head), encode(model, tb, head)
     assert zq.shape[0] == 2 and zq.shape == zt.shape, f"encode shape: {zq.shape} vs {zt.shape}"
     assert torch.allclose(zq.norm(dim=1), torch.ones(2, device=device), atol=1e-4), \
-        "encoder output not unit-norm"
+        "projected output not unit-norm"
     loss = info_nce(zq, zt)
     assert torch.isfinite(loss), f"loss not finite: {loss}"
     loss.backward()
-    has_grad = any(p.grad is not None and p.grad.abs().sum() > 0
+    enc_grad = any(p.grad is not None and p.grad.abs().sum() > 0
                    for p in model.swinViT.parameters())
-    assert has_grad, "no gradients flowed into swinViT"
+    head_grad = any(p.grad is not None and p.grad.abs().sum() > 0 for p in head.parameters())
+    assert enc_grad and head_grad, f"grads — encoder:{enc_grad} head:{head_grad}"
     print(f"smoke OK  device={device}  zq.shape={tuple(zq.shape)}  loss={loss.item():.4f}")
 
 
