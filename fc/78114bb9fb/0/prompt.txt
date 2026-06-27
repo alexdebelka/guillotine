@@ -1,0 +1,6 @@
+SSL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+step     0  loss 2.8121  avg10 2.8121  t 29.9s
+step     5  loss 2.7670  avg10 2.7940  t 56.7s
+step    10  loss 2.7726  avg10 2.7812  t 111.7s
+step    15  loss 2.7726  avg10 2.7723  t 147.1s
+step    20  loss 2.7726  avg10 2.7726  t 202.2s
