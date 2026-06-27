@@ -33,12 +33,9 @@ from augmenter import make_augmenter, augment_pair
 from viz_aug import load_and_resize
 
 
-POOLED_DIM = 768 * 2  # avg + max pool concat over deepest stage
-
-
 class ProjHead(nn.Module):
-    """SimCLR-style 2-layer projection head. Used only during training; retrieval uses raw encoder."""
-    def __init__(self, in_dim: int = POOLED_DIM, hidden: int = 512, out_dim: int = 128):
+    """SimCLR-style 2-layer projection head. in_dim is set at startup from pool_features dim."""
+    def __init__(self, in_dim: int, hidden: int = 1024, out_dim: int = 128):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(in_dim, hidden),
@@ -72,13 +69,18 @@ class PairDataset(Dataset):
         return torch.from_numpy(q_aug)[None], torch.from_numpy(t_aug)[None]  # (1,D,H,W)
 
 
-def pool_features(feat: torch.Tensor) -> torch.Tensor:
-    """Avg + max pool concat over deepest-stage feature map.
-    feat: (B, C, D, H, W) -> (B, 2C). Avg alone collapses at init; max-concat preserves
-    'feature-present-anywhere' signal that distinguishes anatomies."""
-    avg = F.adaptive_avg_pool3d(feat, 1).flatten(1)
-    mx = F.adaptive_max_pool3d(feat, 1).flatten(1)
-    return torch.cat([avg, mx], dim=1)
+def pool_features(features) -> torch.Tensor:
+    """Avg + max pool concat over ALL stages from swinViT.
+    Deepest stage alone is too abstract (97% sim across different brains at init);
+    fusing all stages captures both low-level (anatomy) and high-level (semantic) signals.
+    Input: list/tuple of (B, C_i, D_i, H_i, W_i). Output: (B, 2*sum(C_i))."""
+    if not isinstance(features, (list, tuple)):
+        features = [features]
+    pooled = []
+    for f in features:
+        pooled.append(F.adaptive_avg_pool3d(f, 1).flatten(1))
+        pooled.append(F.adaptive_max_pool3d(f, 1).flatten(1))
+    return torch.cat(pooled, dim=1)
 
 
 def encode(model, batch: torch.Tensor, head: nn.Module | None = None,
@@ -87,8 +89,7 @@ def encode(model, batch: torch.Tensor, head: nn.Module | None = None,
     (training path). Without head, returns raw pooled encoder features (retrieval path).
     If return_features, also returns the pre-projection pooled features (unit-norm) for diagnostics."""
     out = model.swinViT(batch)
-    feat = out[-1] if isinstance(out, (list, tuple)) else out
-    vec = pool_features(feat)
+    vec = pool_features(out)
     enc_vec = F.normalize(vec, dim=1)
     if head is not None:
         vec = head(vec)
@@ -96,6 +97,17 @@ def encode(model, batch: torch.Tensor, head: nn.Module | None = None,
     if return_features:
         return out_vec, enc_vec
     return out_vec
+
+
+def get_pooled_dim(model, device) -> int:
+    """Run one dummy forward to detect total pooled dim across all stages."""
+    model.eval()
+    with torch.no_grad():
+        probe = torch.zeros(1, 1, *INPUT_SIZE, device=device)
+        out = model.swinViT(probe)
+        dim = pool_features(out).shape[1]
+    model.train()
+    return dim
 
 
 def info_nce(zq: torch.Tensor, zt: torch.Tensor, temp: float = 0.07) -> torch.Tensor:
@@ -133,7 +145,9 @@ def main():
         load_ssl_weights(model, args.ssl_weights)
     else:
         print(f"WARN: ssl weights not found at {args.ssl_weights} — training from scratch")
-    head = ProjHead().to(device)
+    pooled_dim = get_pooled_dim(model, device)
+    print(f"pooled feature dim (all stages, avg+max): {pooled_dim}")
+    head = ProjHead(in_dim=pooled_dim).to(device)
     model.train(); head.train()
 
     opt = torch.optim.AdamW([
@@ -152,15 +166,16 @@ def main():
             losses.append(loss.item())
             if step % args.log_every == 0:
                 with torch.no_grad():
-                    # encoder-level (pre-head) and head-level (post-proj) similarity
                     esim = eq @ et.t()
                     e_diag = esim.diag().mean().item()
                     e_off = (esim.sum() - esim.diag().sum()).item() / (esim.numel() - esim.size(0))
                     sim = zq @ zt.t()
                     diag = sim.diag().mean().item()
                     off = (sim.sum() - sim.diag().sum()).item() / (sim.numel() - sim.size(0))
+                    inp_std = q.std(dim=0).mean().item()  # variance across batch — should be > 0 if inputs differ
                 print(f"step {step:5d}  loss {loss.item():.4f}  "
                       f"avg10 {np.mean(losses[-10:]):.4f}  "
+                      f"inp_std {inp_std:.3f}  "
                       f"enc Δ {e_diag-e_off:+.3f} (d{e_diag:+.3f}/o{e_off:+.3f})  "
                       f"head Δ {diag-off:+.3f} (d{diag:+.3f}/o{off:+.3f})  "
                       f"t {time.time()-t0:.1f}s")
@@ -182,7 +197,9 @@ def _smoke():
     assert q0.shape == (1, *INPUT_SIZE) and t0.shape == (1, *INPUT_SIZE), \
         f"bad dataset shape: {q0.shape} {t0.shape}"
     model, device = build_encoder()
-    head = ProjHead().to(device)
+    pooled_dim = get_pooled_dim(model, device)
+    print(f"pooled feature dim (all stages, avg+max): {pooled_dim}")
+    head = ProjHead(in_dim=pooled_dim).to(device)
     model.train(); head.train()
     qb = torch.stack([ds[i][0] for i in range(2)]).to(device)
     tb = torch.stack([ds[i][1] for i in range(2)]).to(device)

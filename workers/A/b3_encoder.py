@@ -56,13 +56,16 @@ def load_ssl_weights(model: SwinUNETR, ckpt_path: str) -> int:
 
 @torch.no_grad()
 def embed(model: SwinUNETR, device: str, volume: np.ndarray) -> np.ndarray:
-    """volume: (D,H,W) float32 already preprocessed to INPUT_SIZE. Returns unit-norm float32 (2*C,).
-    Uses avg+max pool concat of the deepest stage — pure avg-pool collapses across brains
-    at this depth and resolution; max-concat preserves anatomy-discriminating signal."""
+    """volume: (D,H,W) float32 already preprocessed to INPUT_SIZE. Returns unit-norm float32.
+    Uses avg+max pool concat across ALL swinViT stages — deepest stage alone is too abstract
+    to discriminate individual brains (sim ~0.97 across different brains at init)."""
     x = torch.from_numpy(volume)[None, None].float().to(device)
     out = model.swinViT(x)
-    feat = out[-1] if isinstance(out, (list, tuple)) else out  # deepest stage
-    avg = F.adaptive_avg_pool3d(feat, 1).flatten()
-    mx = F.adaptive_max_pool3d(feat, 1).flatten()
-    vec = torch.cat([avg, mx]).cpu().numpy()
+    if not isinstance(out, (list, tuple)):
+        out = [out]
+    parts = []
+    for f in out:
+        parts.append(F.adaptive_avg_pool3d(f, 1).flatten())
+        parts.append(F.adaptive_max_pool3d(f, 1).flatten())
+    vec = torch.cat(parts).cpu().numpy()
     return (vec / (np.linalg.norm(vec) + 1e-8)).astype(np.float32)
