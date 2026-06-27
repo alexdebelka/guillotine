@@ -1,0 +1,726 @@
+Okay. Give me the big picture. tell me the pipeline in a mermaid chart
+
+---
+
+write me a short descriptions of the steps. What we are doing. In simple terms. Also, write me all of the models and technniques we are using
+
+---
+
+okay. So tell me, on my part, what should we do and start with. Use plain language.
+
+---
+
+how is it going?
+
+---
+
+it says that there are +5 tasks pending. Can I see them all?
+
+---
+
+should we pull the weights from the SWINUNTER internship? would that help? It is on knee mri
+
+---
+
+okay, let's start with the SMOKE-Test ROCm. What is ROCm?
+
+---
+
+I received the jupyter url, IP, jupyter token, and root password to acces the GPU
+
+---
+
+root@13ebd1a804d0:/app# !rocm-smi
+!cat /opt/rocm/.info/version 2>/dev/null || echo "no /opt/rocm/.info/version"
+bash: !rocm: event not found
+bash: !cat: event not found
+root@13ebd1a804d0:/app#
+
+---
+
+root@13ebd1a804d0:/app# rocm-smi
+cat /opt/rocm/.info/version 2>/dev/null || echo "no /opt/rocm/.info/version"
+
+
+============================================ ROCm System Management Interface ============================================
+====================================================== Concise Info ======================================================
+Device  Node  IDs              Temp        Power     Partitions          SCLK    MCLK    Fan  Perf  PwrCap  VRAM%  GPU%  
+              (DID,     GUID)  (Junction)  (Socket)  (Mem, Compute, ID)                                                  
+==========================================================================================================================
+0       1     0x74b5,   21947  45.0°C      150.0W    NPS1, SPX, 0        143Mhz  900Mhz  0%   auto  750.0W  0%     0%    
+==========================================================================================================================
+================================================== End of ROCm SMI Log ===================================================
+7.2.3
+root@13ebd1a804d0:/app# which python python3 pip
+python3 -c "import torch; print(torch.__version__, torch.cuda.is_available())" 2>&1 | head -20
+/usr/bin/python
+/usr/bin/python3
+/usr/local/bin/pip
+2.10.0+git8514f05 True
+root@13ebd1a804d0:/app#
+
+---
+
+root@13ebd1a804d0:/app# which python python3 pip
+python3 -c "import torch; print(torch.__version__, torch.cuda.is_available())" 2>&1 | head -20
+/usr/bin/python
+/usr/bin/python3
+/usr/local/bin/pip
+2.10.0+git8514f05 True
+root@13ebd1a804d0:/app# python3 - <<'EOF'
+import torch
+print("torch:", torch.__version__)
+print("device count:", torch.cuda.device_count())
+print("device name:", torch.cuda.get_device_name(0))
+print("hip:", torch.version.hip)
+x = torch.randn(4096, 4096, device="cuda")
+y = x @ x
+torch.cuda.synchronize()
+print("matmul ok, mean:", y.mean().item(), "free GB:", torch.cuda.mem_get_info()[0] / 1e9)
+EOF
+
+python3 -c "import monai, nibabel, numpy, sklearn, tqdm; print('monai', monai.__version__, '| nibabel', nibabel.__version__, '| numpy', numpy.__version__, '| sklearn', sklearn.__version__)" 2>&1
+torch: 2.10.0+git8514f05
+device count: 1
+device name: 
+hip: 7.2.53211
+matmul ok, mean: -0.020072992891073227 free GB: 205.057425408
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'monai'
+root@13ebd1a804d0:/app#
+
+---
+
+the data is already on jupyter. We might not need kaggle anymore
+
+---
+
+root@13ebd1a804d0:/app# find / -maxdepth 5 -type d \( -name 'dataset1' -o -name 'dataset2' -o -name 'dataset3' \) 2>/dev/null
+find / -maxdepth 5 -name 'sample_submission.csv' 2>/dev/null
+find / -maxdepth 5 -name 'train_pairs.csv' 2>/dev/null
+df -h
+/shared-docker/data/dataset3
+/shared-docker/data/dataset2
+/shared-docker/data/dataset1
+/shared-docker/data/dataset1/train_pairs.csv
+Filesystem      Size  Used Avail Use% Mounted on
+overlay         697G  145G  552G  21% /
+tmpfs            64M     0   64M   0% /dev
+shm              16G  4.0K   16G   1% /dev/shm
+/dev/vda1       697G  145G  552G  21% /shared-docker
+tmpfs           4.0K     0  4.0K   0% /proc/acpi
+root@13ebd1a804d0:/app#
+
+---
+
+root@13ebd1a804d0:/app# export DATA_ROOT=/shared-docker/data
+ls "$DATA_ROOT"
+ls "$DATA_ROOT/dataset1" "$DATA_ROOT/dataset2" "$DATA_ROOT/dataset3"
+head -3 "$DATA_ROOT/dataset1/train_pairs.csv"
+find "$DATA_ROOT" -maxdepth 3 -name 'sample_submission.csv'
+dataset1  dataset2  dataset3
+/shared-docker/data/dataset1:
+images  test_gallery.csv  test_queries.csv  train_pairs.csv  val_gallery.csv  val_queries.csv
+
+/shared-docker/data/dataset2:
+images  test_gallery.csv  test_queries.csv  val_gallery.csv  val_queries.csv
+
+/shared-docker/data/dataset3:
+images  test_gallery.csv  test_queries.csv  val_gallery.csv  val_queries.csv
+pair_id,query_id,target_id,query_image,target_image,query_modality,target_modality,dataset
+pair_b233e366f896,q_0fb1a0d90299,g_266b5af98426,dataset1/images/train/queries/q_0fb1a0d90299.nii.gz,dataset1/images/train/gallery/g_266b5af98426.nii.gz,T1 post-contrast,T2,dataset1
+pair_02273c5a6165,q_a00e2b5b3d66,g_fa7a90280e57,dataset1/images/train/queries/q_a00e2b5b3d66.nii.gz,dataset1/images/train/gallery/g_fa7a90280e57.nii.gz,T1 post-contrast,T2,dataset1
+root@13ebd1a804d0:/app# root@13ebd1a804d0:/app# mkdir -p /shared-docker/work && cd /shared-docker/work
+git clone https://github.com/NicoStellwag/ehl-paris-2026-medical-retrieval.git challenge
+git clone https://github.com/morozovdd/CrossKEY.git crosskey
+ls
+Cloning into 'challenge'...
+remote: Enumerating objects: 11, done.
+remote: Counting objects: 100% (11/11), done.
+remote: Compressing objects: 100% (10/10), done.
+remote: Total 11 (delta 1), reused 11 (delta 1), pack-reused 0 (from 0)
+Receiving objects: 100% (11/11), 268.50 KiB | 4.63 MiB/s, done.
+Resolving deltas: 100% (1/1), done.
+Cloning into 'crosskey'...
+remote: Enumerating objects: 385, done.
+remote: Counting objects: 100% (338/338), done.
+remote: Compressing objects: 100% (234/234), done.
+remote: Total 385 (delta 121), reused 303 (delta 93), pack-reused 47 (from 1)
+Receiving objects: 100% (385/385), 2.01 MiB | 19.60 MiB/s, done.
+Resolving deltas: 100% (132/132), done.
+challenge  crosskey
+root@13ebd1a804d0:/shared-docker/work#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work# pip install monai nibabel scikit-learn tqdm
+python3 -c "import monai, nibabel, sklearn, tqdm; print('monai', monai.__version__, '| nibabel', nibabel.__version__)"
+Collecting monai
+  Downloading monai-1.6.0-202606221745-py3-none-any.whl.metadata (14 kB)
+Collecting nibabel
+  Downloading nibabel-5.4.2-py3-none-any.whl.metadata (8.9 kB)
+Collecting scikit-learn
+  Downloading scikit_learn-1.9.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (11 kB)
+Requirement already satisfied: tqdm in /usr/local/lib/python3.12/dist-packages (4.68.2)
+Requirement already satisfied: torch>=2.8.0 in /usr/local/lib/python3.12/dist-packages (from monai) (2.10.0+git8514f05)
+Requirement already satisfied: numpy<3.0,>=1.24 in /usr/local/lib/python3.12/dist-packages (from monai) (2.1.3)
+Requirement already satisfied: packaging>=20 in /usr/local/lib/python3.12/dist-packages (from nibabel) (25.0)
+Requirement already satisfied: typing-extensions>=4.6 in /usr/local/lib/python3.12/dist-packages (from nibabel) (4.15.0)
+Requirement already satisfied: scipy>=1.10.0 in /usr/local/lib/python3.12/dist-packages (from scikit-learn) (1.17.1)
+Requirement already satisfied: joblib>=1.4.0 in /usr/local/lib/python3.12/dist-packages (from scikit-learn) (1.5.3)
+Requirement already satisfied: narwhals>=2.0.1 in /usr/local/lib/python3.12/dist-packages (from scikit-learn) (2.22.1)
+Collecting threadpoolctl>=3.5.0 (from scikit-learn)
+  Downloading threadpoolctl-3.6.0-py3-none-any.whl.metadata (13 kB)
+Requirement already satisfied: filelock in /usr/local/lib/python3.12/dist-packages (from torch>=2.8.0->monai) (3.29.3)
+Requirement already satisfied: setuptools in /usr/local/lib/python3.12/dist-packages (from torch>=2.8.0->monai) (79.0.1)
+Requirement already satisfied: sympy>=1.13.3 in /usr/local/lib/python3.12/dist-packages (from torch>=2.8.0->monai) (1.14.0)
+Requirement already satisfied: networkx>=2.5.1 in /usr/local/lib/python3.12/dist-packages (from torch>=2.8.0->monai) (3.6.1)
+Requirement already satisfied: jinja2 in /usr/local/lib/python3.12/dist-packages (from torch>=2.8.0->monai) (3.1.6)
+Requirement already satisfied: fsspec>=0.8.5 in /usr/local/lib/python3.12/dist-packages (from torch>=2.8.0->monai) (2026.4.0)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in /usr/local/lib/python3.12/dist-packages (from sympy>=1.13.3->torch>=2.8.0->monai) (1.3.0)
+Requirement already satisfied: MarkupSafe>=2.0 in /usr/local/lib/python3.12/dist-packages (from jinja2->torch>=2.8.0->monai) (3.0.3)
+Downloading monai-1.6.0-202606221745-py3-none-any.whl (1.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 22.9 MB/s  0:00:00
+Downloading nibabel-5.4.2-py3-none-any.whl (3.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 59.1 MB/s  0:00:00
+Downloading scikit_learn-1.9.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (9.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.1/9.1 MB 146.5 MB/s  0:00:00
+Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+Installing collected packages: threadpoolctl, nibabel, scikit-learn, monai
+Successfully installed monai-1.6.0 nibabel-5.4.2 scikit-learn-1.9.0 threadpoolctl-3.6.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+monai 1.6.0 | nibabel 5.4.2
+root@13ebd1a804d0:/shared-docker/work# echo 'export DATA_ROOT=/shared-docker/data' >> ~/.bashrc
+root@13ebd1a804d0:/shared-docker/work#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work# cd /shared-docker/work/challenge
+ls -la
+test -f README.md && head -80 README.md
+test -f slice_clip_baseline.py && wc -l slice_clip_baseline.py
+test -f pyproject.toml && cat pyproject.toml
+test -f sample_submission.csv && head -3 sample_submission.csv && wc -l sample_submission.csv
+which uv
+total 488
+drwxr-xr-x 4 root root   4096 Jun 27 13:52 .
+drwxr-xr-x 4 root root   4096 Jun 27 13:52 ..
+drwxr-xr-x 8 root root   4096 Jun 27 13:52 .git
+-rwxr-xr-x 1 root root  10117 Jun 27 13:52 README.md
+drwxr-xr-x 2 root root   4096 Jun 27 13:52 assets
+-rwxr-xr-x 1 root root 448995 Jun 27 13:52 sample_submission.csv
+-rwxr-xr-x 1 root root  19799 Jun 27 13:52 slice_clip_baseline.py
+# Brain MRI Cross-Modal Retrieval Challenge
+
+Your task is to build a cross-modal medical image retrieval system. For each query brain MRI volume, rank all candidate target MRI volumes from the matching gallery so that the true same-subject target appears as high as possible.
+
+## Kaggle Challenge
+
+https://www.kaggle.com/t/b33ec3e76c3d4e16a6b56852470b3ebf
+
+
+## Modalities
+
+- Query: T1 post-contrast MRI
+- Target: T2 MRI
+
+All images are 3D NIfTI `.nii.gz` volumes converted to RAS orientation.
+
+## Data Layout
+
+The data is split into three independent datasets:
+
+```text
+dataset1/
+  train_pairs.csv
+  val_queries.csv
+  val_gallery.csv
+  test_queries.csv
+  test_gallery.csv
+  images/
+    train/
+    val/
+    test/
+
+dataset2/
+  val_queries.csv
+  val_gallery.csv
+  test_queries.csv
+  test_gallery.csv
+  images/
+    val/
+    test/
+
+dataset3/
+  val_queries.csv
+  val_gallery.csv
+  test_queries.csv
+  test_gallery.csv
+  images/
+    val/
+    test/
+
+sample_submission.csv
+```
+
+`dataset1` includes labelled training pairs. `dataset2` and `dataset3` have no labelled training pairs and are intended to evaluate generalization.
+
+## Dataset Descriptions
+
+### Dataset 1
+
+`dataset1` contains preoperative MRI pairs only. It provides the labelled training set for the challenge: each row in `dataset1/train_pairs.csv` gives a matching T1 post-contrast query image and T2 target image from the same subject.
+
+All `dataset1` pairs, including training, validation, and test pairs, are registered to a common image grid. You may use that fact when training on the labelled pairs and when developing methods on this dataset.
+
+`dataset1` validation and test data are provided as query/gallery retrieval pools. The correct matches are hidden and are used for leaderboard scoring.
+
+### Dataset 2
+
+`dataset2` contains preoperative MRI pairs from the same source setting as `dataset1`, but the validation and test images have random rigid rotation/translation and non-linear deformations applied. Query and target images in a correct pair are deformed independently, so they no longer share one common geometry.
+
+No labelled training pairs are provided for `dataset2`. It is intended to test whether a method can generalize from the registered development data to a setting with synthetic geometric variation.
+
+The example below shows one correct query-target pair from `dataset2` using one representative slice from each volume:
+
+![Dataset 2 correct pair example](assets/dataset2_example_pair.png)
+
+### Dataset 3
+
+`dataset3` contains preoperative-to-intraoperative MRI pairs. No labelled training pairs are provided for `dataset3`; it is intended to evaluate generalization to a more structurally different setting.
+
+In `dataset3`, each intraoperative target image has been resampled into the same geometric space as its matching preoperative query image using the source image physical coordinates. This does not mean the images are registered in the strict sense. The candidates are intraoperative images, so the anatomy can be structurally different from the preoperative query: tissue may have shifted, parts of the brain may be missing, and local structures can look different because of the intervention. The goal is still to retrieve the matching subject, but exact local alignment is not guaranteed.
+484 slice_clip_baseline.py
+query_id,target_id_ranking
+q_e782d79e146a,g_f9d76f64d617 g_7944a8a0c287 g_13da2f95f620 g_9f1cf15a2d25 g_a6bf3a75923e g_6fa85c5d715e g_aff5d510e717 g_50b48a5cc083 g_435a82857e20 g_87349afa09f2 g_97e267815836 g_db4a8dbe790b g_da1e5df4bc02 g_19b453348e54 g_da5aa13b1968 g_d648ead5c900 g_bf9a2a253bcd g_0543c42a8f32 g_626dcdad119a g_8f1a5d85202c g_671004fc2775 g_68971be96048 g_018969561d96 g_e9acdf8b8ddc g_0e83f250306f g_1307a0fd7c6b g_fd816175409d g_687f1f38b2c3 g_d889b7fc777b g_de34db7b1c7f g_31e014b88352 g_9053723af4c5 g_1a5aac51a659 g_9196ee89c94d g_858dc785cf2d g_130a37598824 g_cfe6c79baec5 g_0b251252e181 g_efaf352ea572 g_cdab0312f9ba
+q_27316085a7ae,g_317cc195c810 g_af31da8cd532 g_aee988210b14 g_459cc0a7b6e8 g_3982eb8aa3f8 g_19f579c08ef7 g_46a719fb56a5 g_c89abdb73af7 g_05f05f30ccf8 g_f3985f1e4290 g_ef62b5f73f83 g_08221a87649f g_2fcf238f3e36 g_3e88b6211356 g_489da6884145 g_960202a1a58e g_57f65099053a g_eeec8abad525 g_9d41ce8b3d86 g_2a6910e4d785 g_5c27320121f7 g_f2c9345d0340 g_e01db4772422 g_9b694e9cd67b g_730613a114b8 g_6d0720f132b5 g_fe297e14ed56 g_2dab7c427d0e g_6d68f8d32724 g_166850a4e1b4 g_d93a48081434 g_e5a256c3f137 g_3cda8853b4ac g_baa20c35118c g_c28979b14f81 g_2eb236abf4b2 g_c70b5acdd7f0 g_126b979c72d6 g_ec8d1f3ba2bb g_755e8dd9157b g_c47c3dd3ddd6 g_2117c11e0c1d g_7b014de714d5 g_c95532a73204 g_82b3b3978a39 g_a79194ab33ec g_aaf34a0e2d53 g_94026374a093 g_7ed2ba0adc67 g_558d6146f9b8 g_ba8e8070d8b8 g_326ed6a9451c g_94384e42a65b g_f551e8f5dbfc g_1bc04833bf22 g_1134f08a30e0 g_10c91b4819a5 g_b4f8f3f9bdde g_0547ac19c5c0 g_9a0a2eb8a22f g_05187a9c1bb0 g_fe731020400a g_b0fc0054dd04 g_19ce49b924f3 g_676899e274c3 g_90138ec6a8e3 g_4d315eaaa8ca g_e73add0b2e0b g_eed1b2761f82 g_cd8ecc62e2c7 g_b679008dede7 g_145f70461ddc g_01662accad2c g_9c45c3fd1e30 g_6c94d83687bd g_94c686999925 g_46a4ecd47327
+378 sample_submission.csv
+/usr/local/bin/uv
+root@13ebd1a804d0:/shared-docker/work/challenge#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/challenge# cd /shared-docker/work/challenge
+head -30 slice_clip_baseline.py
+python3 slice_clip_baseline.py --help
+from __future__ import annotations
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "monai>=1.5.0",
+#   "torch>=2.7.0",
+#   "numpy>=2.0",
+#   "nibabel>=5.3",
+#   "tqdm>=4.67",
+# ]
+# ///
+
+"""
+Tiny 2D slice CLIP baseline for the Brain MRI Cross-Modal Retrieval Challenge.
+
+The script demonstrates:
+- MONAI loading, channel handling, 1 mm spacing, intensity scaling, slice
+  extraction, resizing, typing, and PersistentDataset caching.
+- A tiny random image-noise augmentation during training.
+- Two small 2D CNN encoders trained with a CLIP-style in-batch contrastive loss.
+- Submission generation by ranking gallery targets by embedding similarity.
+
+Run from this folder with uv. This trains only on the labelled dataset1
+training pairs, then writes one combined submission containing validation and
+test queries for dataset1, dataset2, and dataset3:
+
+    DATA_ROOT=/path/to/kaggle_dataset
+
+    uv run slice_clip_baseline.py \
+      --data-root "$DATA_ROOT" \
+usage: slice_clip_baseline.py [-h] --data-root DATA_ROOT [--train-pair-csv TRAIN_PAIR_CSV] [--train-query-csv TRAIN_QUERY_CSV] [--train-gallery-csv TRAIN_GALLERY_CSV]
+                              [--train-label-csv TRAIN_LABEL_CSV] --query-csv QUERY_CSV --gallery-csv GALLERY_CSV [--out OUT]
+
+Simple MONAI + middle-slice CNN retrieval baseline.
+
+options:
+  -h, --help            show this help message and exit
+  --data-root DATA_ROOT
+  --train-pair-csv TRAIN_PAIR_CSV
+  --train-query-csv TRAIN_QUERY_CSV
+  --train-gallery-csv TRAIN_GALLERY_CSV
+  --train-label-csv TRAIN_LABEL_CSV
+  --query-csv QUERY_CSV
+  --gallery-csv GALLERY_CSV
+  --out OUT
+root@13ebd1a804d0:/shared-docker/work/challenge#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/challenge# cd /shared-docker/work/challenge
+head -30 slice_clip_baseline.py
+python3 slice_clip_baseline.py --help
+from __future__ import annotations
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "monai>=1.5.0",
+#   "torch>=2.7.0",
+#   "numpy>=2.0",
+#   "nibabel>=5.3",
+#   "tqdm>=4.67",
+# ]
+# ///
+
+"""
+Tiny 2D slice CLIP baseline for the Brain MRI Cross-Modal Retrieval Challenge.
+
+The script demonstrates:
+- MONAI loading, channel handling, 1 mm spacing, intensity scaling, slice
+  extraction, resizing, typing, and PersistentDataset caching.
+- A tiny random image-noise augmentation during training.
+- Two small 2D CNN encoders trained with a CLIP-style in-batch contrastive loss.
+- Submission generation by ranking gallery targets by embedding similarity.
+
+Run from this folder with uv. This trains only on the labelled dataset1
+training pairs, then writes one combined submission containing validation and
+test queries for dataset1, dataset2, and dataset3:
+
+    DATA_ROOT=/path/to/kaggle_dataset
+
+    uv run slice_clip_baseline.py \
+      --data-root "$DATA_ROOT" \
+usage: slice_clip_baseline.py [-h] --data-root DATA_ROOT [--train-pair-csv TRAIN_PAIR_CSV] [--train-query-csv TRAIN_QUERY_CSV] [--train-gallery-csv TRAIN_GALLERY_CSV]
+                              [--train-label-csv TRAIN_LABEL_CSV] --query-csv QUERY_CSV --gallery-csv GALLERY_CSV [--out OUT]
+
+Simple MONAI + middle-slice CNN retrieval baseline.
+
+options:
+  -h, --help            show this help message and exit
+  --data-root DATA_ROOT
+  --train-pair-csv TRAIN_PAIR_CSV
+  --train-query-csv TRAIN_QUERY_CSV
+  --train-gallery-csv TRAIN_GALLERY_CSV
+  --train-label-csv TRAIN_LABEL_CSV
+  --query-csv QUERY_CSV
+  --gallery-csv GALLERY_CSV
+  --out OUT
+root@13ebd1a804d0:/shared-docker/work/challenge# cd /shared-docker/work/challenge
+python3 slice_clip_baseline.py \
+  --data-root "$DATA_ROOT" \
+  --train-pair-csv "$DATA_ROOT/dataset1/train_pairs.csv" \
+  --query-csv "$DATA_ROOT/dataset1/val_queries.csv" \
+  --gallery-csv "$DATA_ROOT/dataset1/val_gallery.csv" \
+  --out /shared-docker/work/baseline_d1_val.csv
+{
+  "config": {
+    "seed": 20260626,
+    "cache_dir": ".monai_persistent",
+    "spacing_mm": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "slice_positions": [
+      0.35,
+      0.5,
+      0.65
+    ],
+    "image_size": 96,
+    "noise_probability": 0.3,
+    "noise_std": 0.05,
+    "epochs": 500,
+    "batch_size": 128,
+    "learning_rate": 0.001,
+    "embedding_dim": 128,
+    "encoder_hidden_dim": 512,
+    "similarity_scale": 5.0,
+    "max_grad_norm": 1.0,
+    "num_workers": 0,
+    "device": "cpu"
+  },
+  "num_train_images": 700,
+  "num_inference_images": 80,
+  "num_train_pairs": 350
+}
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/dist-packages/nibabel/loadsave.py", line 104, in load
+    stat_result = os.stat(filename)
+                  ^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/shared-docker/data/dataset1/images/train/queries/q_c95576900680.nii.gz'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/dist-packages/monai/transforms/transform.py", line 153, in apply_transform
+    return _apply_transform(transform, data, unpack_items, lazy, overrides, log_stats)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/transforms/transform.py", line 98, in _apply_transform
+    return transform(data, lazy=lazy) if isinstance(transform, LazyTrait) else transform(data)
+                                                                               ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/transforms/io/dictionary.py", line 162, in __call__
+    data = self._loader(d[key], reader)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/transforms/io/array.py", line 263, in __call__
+    img = reader.read(filename)
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/data/image_reader.py", line 1094, in read
+    img = nib.load(name, **kwargs_)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/nibabel/loadsave.py", line 106, in load
+    raise FileNotFoundError(f"No such file or no access: '{filename}'")
+FileNotFoundError: No such file or no access: '/shared-docker/data/dataset1/images/train/queries/q_c95576900680.nii.gz'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/shared-docker/work/challenge/slice_clip_baseline.py", line 484, in <module>
+    main()
+  File "/shared-docker/work/challenge/slice_clip_baseline.py", line 469, in main
+    model = train_model(train_dataset)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/shared-docker/work/challenge/slice_clip_baseline.py", line 347, in train_model
+    for query_batch, target_batch in loader:
+                                     ^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/utils/data/dataloader.py", line 741, in __next__
+    data = self._next_data()
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/utils/data/dataloader.py", line 801, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/utils/data/_utils/fetch.py", line 54, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+            ~~~~~~~~~~~~^^^^^
+  File "/shared-docker/work/challenge/slice_clip_baseline.py", line 203, in __getitem__
+    query_image = self._image(query_id)
+                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/shared-docker/work/challenge/slice_clip_baseline.py", line 209, in _image
+    item = self.image_dataset[self.id_to_index[image_id]]
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/data/dataset.py", line 109, in __getitem__
+    return self._transform(index)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/data/dataset.py", line 437, in _transform
+    pre_random_item = self._cachecheck(self.data[index])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/data/dataset.py", line 410, in _cachecheck
+    _item_transformed = self._pre_transform(deepcopy(item_transformed))  # keep the original hashed
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/data/dataset.py", line 348, in _pre_transform
+    item_transformed = self.transform(item_transformed, end=first_random, threading=True)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/transforms/compose.py", line 376, in __call__
+    result = execute_compose(
+             ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/transforms/compose.py", line 134, in execute_compose
+    data = apply_transform(
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/monai/transforms/transform.py", line 183, in apply_transform
+    raise RuntimeError(f"applying transform {transform}") from e
+RuntimeError: applying transform <monai.transforms.io.dictionary.LoadImaged object at 0x7947a1175b50>
+root@13ebd1a804d0:/shared-docker/work/challenge#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/challenge# ls /shared-docker/data/dataset1/images/
+ls /shared-docker/data/dataset1/images/train/ 2>/dev/null
+ls /shared-docker/data/dataset1/images/train/queries/ 2>/dev/null | head
+ls /shared-docker/data/dataset1/images/train/queries/ 2>/dev/null | wc -l
+ls /shared-docker/data/dataset1/images/train/gallery/ 2>/dev/null | wc -l
+# does the specific missing file exist anywhere?
+find /shared-docker/data -name 'q_c95576900680.nii.gz' 2>/dev/null
+# how many unique training query/gallery files does the CSV reference?
+awk -F',' 'NR>1 {print $4}' /shared-docker/data/dataset1/train_pairs.csv | sort -u | wc -l
+awk -F',' 'NR>1 {print $5}' /shared-docker/data/dataset1/train_pairs.csv | sort -u | wc -l
+test  train  val
+gallery  queries
+q_00825a4358d6.nii
+q_008ca35870b8.nii
+q_011fbe87052c.nii
+q_01389c4ffe0e.nii
+q_04d523ebf60a.nii
+q_050a4d67566e.nii
+q_056bf4556730.nii
+q_058a3dfc5a93.nii
+q_05bd5d897a57.nii
+q_05cbaea8e717.nii
+350
+350
+350
+350
+root@13ebd1a804d0:/shared-docker/work/challenge#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/challenge# ls /shared-docker/data/dataset1/images/val/queries/ 2>/dev/null | head -2
+ls /shared-docker/data/dataset1/images/test/queries/ 2>/dev/null | head -2
+ls /shared-docker/data/dataset2/images/val/queries/ 2>/dev/null | head -2
+head -2 /shared-docker/data/dataset1/val_queries.csv
+head -2 /shared-docker/data/dataset1/train_pairs.csv
+q_01809f78e5b6.nii
+q_01ff5ee4d1d5.nii
+q_01abb3f1d471.nii
+q_094d6d5efb96.nii
+q_0002ff67052c.nii
+q_04b2a0b42a2d.nii
+query_id,query_image,query_modality,dataset
+q_0f96c625b9cd,dataset1/images/val/queries/q_0f96c625b9cd.nii.gz,T1 post-contrast,dataset1
+pair_id,query_id,target_id,query_image,target_image,query_modality,target_modality,dataset
+pair_b233e366f896,q_0fb1a0d90299,g_266b5af98426,dataset1/images/train/queries/q_0fb1a0d90299.nii.gz,dataset1/images/train/gallery/g_266b5af98426.nii.gz,T1 post-contrast,T2,dataset1
+root@13ebd1a804d0:/shared-docker/work/challenge#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/challenge# ls /shared-docker/data/dataset1/images/val/queries/ 2>/dev/null | head -2
+ls /shared-docker/data/dataset1/images/test/queries/ 2>/dev/null | head -2
+ls /shared-docker/data/dataset2/images/val/queries/ 2>/dev/null | head -2
+head -2 /shared-docker/data/dataset1/val_queries.csv
+head -2 /shared-docker/data/dataset1/train_pairs.csv
+q_01809f78e5b6.nii
+q_01ff5ee4d1d5.nii
+q_01abb3f1d471.nii
+q_094d6d5efb96.nii
+q_0002ff67052c.nii
+q_04b2a0b42a2d.nii
+query_id,query_image,query_modality,dataset
+q_0f96c625b9cd,dataset1/images/val/queries/q_0f96c625b9cd.nii.gz,T1 post-contrast,dataset1
+pair_id,query_id,target_id,query_image,target_image,query_modality,target_modality,dataset
+pair_b233e366f896,q_0fb1a0d90299,g_266b5af98426,dataset1/images/train/queries/q_0fb1a0d90299.nii.gz,dataset1/images/train/gallery/g_266b5af98426.nii.gz,T1 post-contrast,T2,dataset1
+root@13ebd1a804d0:/shared-docker/work/challenge# # back up every CSV in DATA_ROOT
+find /shared-docker/data -name '*.csv' -exec cp {} {}.bak \;
+
+# fix the extension across all of them
+find /shared-docker/data -name '*.csv' -not -name '*.bak' -exec sed -i 's/\.nii\.gz/.nii/g' {} \;
+root@13ebd1a804d0:/shared-docker/work/challenge# head -2 /shared-docker/data/dataset1/train_pairs.csv
+head -2 /shared-docker/data/dataset1/val_queries.csv
+head -2 /shared-docker/data/dataset2/val_queries.csv
+pair_id,query_id,target_id,query_image,target_image,query_modality,target_modality,dataset
+pair_b233e366f896,q_0fb1a0d90299,g_266b5af98426,dataset1/images/train/queries/q_0fb1a0d90299.nii,dataset1/images/train/gallery/g_266b5af98426.nii,T1 post-contrast,T2,dataset1
+query_id,query_image,query_modality,dataset
+q_0f96c625b9cd,dataset1/images/val/queries/q_0f96c625b9cd.nii,T1 post-contrast,dataset1
+query_id,query_image,query_modality,dataset
+q_35e5b99d921d,dataset2/images/val/queries/q_35e5b99d921d.nii,T1 post-contrast,dataset2
+root@13ebd1a804d0:/shared-docker/work/challenge#
+
+---
+
+what we are training? or calucalteing the loss for?
+
+---
+
+can I connect to weights and biases so we can track the future trainings? Not this one.
+
+---
+
+this is a snippet: epoch 093 loss=1.01443
+epoch 094 loss=1.01878
+epoch 095 loss=1.01463
+epoch 096 loss=1.01331
+epoch 097 loss=1.00912
+epoch 098 loss=0.99235
+epoch 099 loss=0.98665
+epoch 100 loss=1.00406
+epoch 101 loss=0.98614
+epoch 102 loss=0.96687
+epoch 103 loss=0.98741
+epoch 104 loss=0.96704
+epoch 105 loss=0.97753
+epoch 106 loss=0.96362
+epoch 107 loss=0.95995
+epoch 108 loss=0.94084
+epoch 109 loss=0.94204
+epoch 110 loss=0.93953
+epoch 111 loss=0.94127
+epoch 112 loss=0.94323
+epoch 113 loss=0.92540
+epoch 114 loss=0.93208
+epoch 115 loss=0.93248
+epoch 116 loss=0.90931
+epoch 117 loss=0.92260
+epoch 118 loss=0.92384
+epoch 119 loss=0.90397
+epoch 120 loss=0.91761
+epoch 121 loss=0.90850
+epoch 122 loss=0.91201
+epoch 123 loss=0.92578
+epoch 124 loss=0.89297
+epoch 125 loss=0.90739
+epoch 126 loss=0.91124
+epoch 127 loss=0.90315
+epoch 128 loss=0.87977
+epoch 129 loss=0.89108
+epoch 130 loss=0.89433
+epoch 131 loss=0.88490
+epoch 132 loss=0.89407
+epoch 133 loss=0.86363
+epoch 134 loss=0.86460
+epoch 135 loss=0.87705
+epoch 136 loss=0.86998
+epoch 137 loss=0.88344
+epoch 138 loss=0.86797
+epoch 139 loss=0.85490
+epoch 140 loss=0.87200
+epoch 141 loss=0.87373
+epoch 142 loss=0.87161
+epoch 143 loss=0.86123
+epoch 144 loss=0.86558
+epoch 145 loss=0.85339
+epoch 146 loss=0.85667
+epoch 147 loss=0.86205
+epoch 148 loss=0.84193
+epoch 149 loss=0.84283
+epoch 150 loss=0.84548
+epoch 151 loss=0.84645
+epoch 152 loss=0.82525
+epoch 153 loss=0.82269
+epoch 154 loss=0.83576
+epoch 155 loss=0.82954
+epoch 156 loss=0.83910
+epoch 157 loss=0.83371
+epoch 158 loss=0.82691
+epoch 159 loss=0.83330
+epoch 160 loss=0.82405
+epoch 161 loss=0.82467
+epoch 162 loss=0.81583
+epoch 163 loss=0.82802
+epoch 164 loss=0.82500
+epoch 165 loss=0.82693
+epoch 166 loss=0.83126
+epoch 167 loss=0.82554
+epoch 168 loss=0.81395
+
+---
+
+but it went up and then down. is it normal?
+
+---
+
+why is it trainng on the cpu?"device": "cpu"
+
+---
+
+after therun finishes, what we have to do?
+
+---
+
+in @/Users/alexdebelka/PROJECTS/ehl-paris-2026-retrieval/workers/C/ is what the C worker @/Users/alexdebelka/PROJECTS/ehl-paris-2026-retrieval/workers/C/run_b2.ipynb
+
+---
+
+the training finished och 496 loss=0.67022
+epoch 497 loss=0.66501
+epoch 498 loss=0.67118
+epoch 499 loss=0.67113
+epoch 500 loss=0.67334
+Embedding images: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:03<00:00,  3.99s/it]
+Embedding images: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  3.95it/s]
+Ranking queries: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:00<00:00, 37241.32it/s]
+Wrote 40 rows to /shared-docker/work/baseline_d1_val.csv
+root@13ebd1a804d0:/shared-docker/work/challenge#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/challenge# wc -l /shared-docker/work/baseline_d1_val.csv
+head -2 /shared-docker/work/baseline_d1_val.csv
+awk -F',' 'NR==2 {n=split($2, a, " "); print "gallery IDs in first row:", n}' /shared-docker/work/baseline_d1_val.csv
+41 /shared-docker/work/baseline_d1_val.csv
+query_id,target_id_ranking
+q_01809f78e5b6,g_9f1cf15a2d25 g_a6bf3a75923e g_7944a8a0c287 g_1307a0fd7c6b g_0b251252e181 g_cfe6c79baec5 g_fd816175409d g_435a82857e20 g_50b48a5cc083 g_8f1a5d85202c g_97e267815836 g_aff5d510e717 g_626dcdad119a g_19b453348e54 g_68971be96048 g_da5aa13b1968 g_671004fc2775 g_bf9a2a253bcd g_1a5aac51a659 g_9053723af4c5 g_de34db7b1c7f g_db4a8dbe790b g_9196ee89c94d g_130a37598824 g_efaf352ea572 g_da1e5df4bc02 g_d648ead5c900 g_6fa85c5d715e g_d889b7fc777b g_13da2f95f620 g_018969561d96 g_0543c42a8f32 g_687f1f38b2c3 g_31e014b88352 g_87349afa09f2 g_e9acdf8b8ddc g_0e83f250306f g_858dc785cf2d g_cdab0312f9ba g_f9d76f64d617
+gallery IDs in first row: 40
+root@13ebd1a804d0:/shared-docker/work/challenge#
