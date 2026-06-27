@@ -1,0 +1,13 @@
+--resume
+
+---
+
+/init
+
+---
+
+I want to plan tasks we need to do and a very clear roadmap. We are a team of 3, so need a clear guide on the tasks and their importance.
+
+---
+
+Can you save this in an md file?
