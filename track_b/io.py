@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import gzip
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -15,10 +16,17 @@ class ManifestEntry:
     dataset: str
 
 
+def open_text(path: str | Path, mode: str = "r"):
+    file_path = Path(path)
+    if file_path.suffix == ".gz":
+        return gzip.open(file_path, mode + "t", newline="")
+    return file_path.open(mode, newline="")
+
+
 def read_manifest(path: str | Path, root: str | Path | None = None) -> list[ManifestEntry]:
     root_path = Path(root) if root is not None else None
     entries: list[ManifestEntry] = []
-    with Path(path).open("r", newline="") as handle:
+    with open_text(path, "r") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
             image_key = "query_image" if "query_image" in row else "target_image"
@@ -74,7 +82,7 @@ def resolve_path(path: str | Path, root: str | Path | None = None) -> Path:
 
 
 def write_ranking_csv(rows: Iterable[tuple[str, list[str]]], path: str | Path) -> None:
-    with Path(path).open("w", newline="") as handle:
+    with open_text(path, "w") as handle:
         writer = csv.writer(handle)
         writer.writerow(["query_id", "target_id_ranking"])
         for query_id, ranking in rows:

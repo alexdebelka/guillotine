@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import gzip
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -11,6 +12,13 @@ class RetrievalLabel:
     query_id: str
     target_id: str
     dataset: str
+
+
+def _open_text(path: str | Path, mode: str = "r"):
+    file_path = Path(path)
+    if file_path.suffix == ".gz":
+        return gzip.open(file_path, mode + "t", newline="")
+    return file_path.open(mode, newline="")
 
 
 def reciprocal_rank(ranking: list[str], target_id: str) -> float:
@@ -37,7 +45,7 @@ def mean_reciprocal_rank_by_dataset(labels: Iterable[RetrievalLabel], rankings: 
 
 def load_labels_csv(path: str | Path) -> list[RetrievalLabel]:
     labels: list[RetrievalLabel] = []
-    with Path(path).open("r", newline="") as handle:
+    with _open_text(path, "r") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
             labels.append(
@@ -52,7 +60,7 @@ def load_labels_csv(path: str | Path) -> list[RetrievalLabel]:
 
 def load_rankings_csv(path: str | Path) -> dict[str, list[str]]:
     rankings: dict[str, list[str]] = {}
-    with Path(path).open("r", newline="") as handle:
+    with _open_text(path, "r") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
             rankings[row["query_id"]] = row["target_id_ranking"].split()
