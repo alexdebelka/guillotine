@@ -33,9 +33,12 @@ from augmenter import make_augmenter, augment_pair
 from viz_aug import load_and_resize
 
 
+POOLED_DIM = 768 * 2  # avg + max pool concat over deepest stage
+
+
 class ProjHead(nn.Module):
     """SimCLR-style 2-layer projection head. Used only during training; retrieval uses raw encoder."""
-    def __init__(self, in_dim: int = 768, hidden: int = 512, out_dim: int = 128):
+    def __init__(self, in_dim: int = POOLED_DIM, hidden: int = 512, out_dim: int = 128):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(in_dim, hidden),
@@ -69,15 +72,30 @@ class PairDataset(Dataset):
         return torch.from_numpy(q_aug)[None], torch.from_numpy(t_aug)[None]  # (1,D,H,W)
 
 
-def encode(model, batch: torch.Tensor, head: nn.Module | None = None) -> torch.Tensor:
-    """batch: (B,1,D,H,W) → (B,C) unit-norm. If head is given, project before normalizing
-    (training path). Without head, returns raw encoder features (retrieval path)."""
+def pool_features(feat: torch.Tensor) -> torch.Tensor:
+    """Avg + max pool concat over deepest-stage feature map.
+    feat: (B, C, D, H, W) -> (B, 2C). Avg alone collapses at init; max-concat preserves
+    'feature-present-anywhere' signal that distinguishes anatomies."""
+    avg = F.adaptive_avg_pool3d(feat, 1).flatten(1)
+    mx = F.adaptive_max_pool3d(feat, 1).flatten(1)
+    return torch.cat([avg, mx], dim=1)
+
+
+def encode(model, batch: torch.Tensor, head: nn.Module | None = None,
+           return_features: bool = False):
+    """batch: (B,1,D,H,W) -> (B,C) unit-norm. If head given, project before normalizing
+    (training path). Without head, returns raw pooled encoder features (retrieval path).
+    If return_features, also returns the pre-projection pooled features (unit-norm) for diagnostics."""
     out = model.swinViT(batch)
     feat = out[-1] if isinstance(out, (list, tuple)) else out
-    vec = F.adaptive_avg_pool3d(feat, 1).flatten(1)
+    vec = pool_features(feat)
+    enc_vec = F.normalize(vec, dim=1)
     if head is not None:
         vec = head(vec)
-    return F.normalize(vec, dim=1)
+    out_vec = F.normalize(vec, dim=1)
+    if return_features:
+        return out_vec, enc_vec
+    return out_vec
 
 
 def info_nce(zq: torch.Tensor, zt: torch.Tensor, temp: float = 0.07) -> torch.Tensor:
@@ -127,20 +145,24 @@ def main():
     while step < args.steps:
         for q, t in loader:
             q, t = q.to(device, non_blocking=True), t.to(device, non_blocking=True)
-            zq, zt = encode(model, q, head), encode(model, t, head)
+            zq, eq = encode(model, q, head, return_features=True)
+            zt, et = encode(model, t, head, return_features=True)
             loss = info_nce(zq, zt, args.temp)
             opt.zero_grad(); loss.backward(); opt.step()
             losses.append(loss.item())
             if step % args.log_every == 0:
                 with torch.no_grad():
-                    sim = zq @ zt.t()  # cosine sims, no temperature
+                    # encoder-level (pre-head) and head-level (post-proj) similarity
+                    esim = eq @ et.t()
+                    e_diag = esim.diag().mean().item()
+                    e_off = (esim.sum() - esim.diag().sum()).item() / (esim.numel() - esim.size(0))
+                    sim = zq @ zt.t()
                     diag = sim.diag().mean().item()
                     off = (sim.sum() - sim.diag().sum()).item() / (sim.numel() - sim.size(0))
-                    znorm = zq.norm(dim=1).mean().item()
                 print(f"step {step:5d}  loss {loss.item():.4f}  "
                       f"avg10 {np.mean(losses[-10:]):.4f}  "
-                      f"diag {diag:+.3f}  off {off:+.3f}  Δ {diag-off:+.3f}  "
-                      f"|z| {znorm:.3f}  "
+                      f"enc Δ {e_diag-e_off:+.3f} (d{e_diag:+.3f}/o{e_off:+.3f})  "
+                      f"head Δ {diag-off:+.3f} (d{diag:+.3f}/o{off:+.3f})  "
                       f"t {time.time()-t0:.1f}s")
             step += 1
             if step >= args.steps:
