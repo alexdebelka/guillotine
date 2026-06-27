@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.7.7",
+  "checkpoint_id": "8d4f31d64875",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "workers/A/train_b3.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/8d/4f31d64875/0/metadata.json",
+      "transcript": "/8d/4f31d64875/0/full.jsonl",
+      "content_hash": "/8d/4f31d64875/0/content_hash.txt",
+      "prompt": "/8d/4f31d64875/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 6,
+    "cache_creation_tokens": 7877,
+    "cache_read_tokens": 303759,
+    "output_tokens": 6476,
+    "api_call_count": 2
+  }
+}
