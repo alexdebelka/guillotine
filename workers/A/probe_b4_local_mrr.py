@@ -28,10 +28,10 @@ DATA_ROOT = os.environ.get("DATA_ROOT", "/shared-docker/data")
 
 def main():
     pairs = pd.read_csv(os.path.join(DATA_ROOT, "dataset1/train_pairs.csv"))
-    # match Track C's split: rng seed=0, hold out the last 50 after shuffle.
+    # match trackc.make_local_split(seed=0): first 50 of the shuffled index.
     rng = np.random.default_rng(0)
     idx = rng.permutation(len(pairs))
-    hold = pairs.iloc[idx[-50:]].reset_index(drop=True)
+    hold = pairs.iloc[idx[:50]].reset_index(drop=True)
     print(f"held-out: {len(hold)} pairs (dataset1 train, seed=0)")
 
     # embed
