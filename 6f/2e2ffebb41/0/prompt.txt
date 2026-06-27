@@ -1,0 +1,95 @@
+oot@13ebd1a804d0:/shared-docker/work/repo# cd /shared-docker/work/repo && git pull
+python workers/A/train_b3.py --smoke
+python workers/A/train_b3.py \
+  --pairs-csv "$DATA_ROOT/dataset1/train_pairs.csv" \
+  --steps 100 --log-every 5 --batch-size 16 --severity mild \
+  --out /tmp/b3_probe6.pt
+remote: Enumerating objects: 32, done.
+remote: Counting objects: 100% (32/32), done.
+remote: Compressing objects: 100% (13/13), done.
+remote: Total 23 (delta 7), reused 23 (delta 7), pack-reused 0 (from 0)
+Unpacking objects: 100% (23/23), 179.53 KiB | 3.39 MiB/s, done.
+From https://github.com/alexdebelka/guillotine
+   7b84840..3486dc1  main                  -> origin/main
+   fc833ef..1d575ca  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Updating 7b84840..3486dc1
+Fast-forward
+ workers/A/b3_encoder.py |  8 ++++++--
+ workers/A/train_b3.py   | 44 +++++++++++++++++++++++++++++++++-----------
+ 2 files changed, 39 insertions(+), 13 deletions(-)
+Traceback (most recent call last):
+  File "/shared-docker/work/repo/workers/A/train_b3.py", line 205, in <module>
+    _smoke()
+  File "/shared-docker/work/repo/workers/A/train_b3.py", line 189, in _smoke
+    zq, zt = encode(model, qb, head), encode(model, tb, head)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/shared-docker/work/repo/workers/A/train_b3.py", line 94, in encode
+    vec = head(vec)
+          ^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/shared-docker/work/repo/workers/A/train_b3.py", line 50, in forward
+    return self.net(x)
+           ^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (2x1536 and 768x512)
+SSL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+Traceback (most recent call last):
+  File "/shared-docker/work/repo/workers/A/train_b3.py", line 207, in <module>
+    main()
+  File "/shared-docker/work/repo/workers/A/train_b3.py", line 148, in main
+    zq, eq = encode(model, q, head, return_features=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/shared-docker/work/repo/workers/A/train_b3.py", line 94, in encode
+    vec = head(vec)
+          ^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/shared-docker/work/repo/workers/A/train_b3.py", line 50, in forward
+    return self.net(x)
+           ^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (16x1536 and 768x512)
+root@13ebd1a804d0:/shared-docker/work/repo#
