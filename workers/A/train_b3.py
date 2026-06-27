@@ -34,10 +34,15 @@ from viz_aug import load_and_resize
 
 
 class ProjHead(nn.Module):
-    """SimCLR-style 2-layer projection head. in_dim is set at startup from pool_features dim."""
+    """SimCLR-style 2-layer projection head with BN on input.
+
+    BatchNorm is critical here: SSL-pretrained brain features cluster in a narrow
+    cone (sim ~0.97 across different brains at init — anisotropy problem). BN subtracts
+    that 'common brain' direction, exposing per-sample variation the head can learn on."""
     def __init__(self, in_dim: int, hidden: int = 1024, out_dim: int = 128):
         super().__init__()
         self.net = nn.Sequential(
+            nn.BatchNorm1d(in_dim),
             nn.Linear(in_dim, hidden),
             nn.GELU(),
             nn.Linear(hidden, out_dim),
