@@ -96,7 +96,10 @@ def main():
     ap.add_argument("--steps", type=int, default=2000)
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--head-lr", type=float, default=3e-4, help="higher LR for projection head")
-    ap.add_argument("--temp", type=float, default=0.07)
+    ap.add_argument("--temp", type=float, default=0.1,
+                    help="InfoNCE temperature. 0.07 saturates softmax at init and stalls.")
+    ap.add_argument("--weight-decay", type=float, default=0.0,
+                    help="0 by default — nonzero wd on the projection head collapses InfoNCE.")
     ap.add_argument("--num-workers", type=int, default=2)
     ap.add_argument("--out", default="b3_ckpt.pt")
     ap.add_argument("--log-every", type=int, default=10)
@@ -118,7 +121,7 @@ def main():
     opt = torch.optim.AdamW([
         {"params": model.swinViT.parameters(), "lr": args.lr},
         {"params": head.parameters(),          "lr": args.head_lr},
-    ], weight_decay=1e-4)
+    ], weight_decay=args.weight_decay)
 
     step, t0, losses = 0, time.time(), []
     while step < args.steps:
@@ -129,8 +132,15 @@ def main():
             opt.zero_grad(); loss.backward(); opt.step()
             losses.append(loss.item())
             if step % args.log_every == 0:
+                with torch.no_grad():
+                    sim = zq @ zt.t()  # cosine sims, no temperature
+                    diag = sim.diag().mean().item()
+                    off = (sim.sum() - sim.diag().sum()).item() / (sim.numel() - sim.size(0))
+                    znorm = zq.norm(dim=1).mean().item()
                 print(f"step {step:5d}  loss {loss.item():.4f}  "
                       f"avg10 {np.mean(losses[-10:]):.4f}  "
+                      f"diag {diag:+.3f}  off {off:+.3f}  Δ {diag-off:+.3f}  "
+                      f"|z| {znorm:.3f}  "
                       f"t {time.time()-t0:.1f}s")
             step += 1
             if step >= args.steps:
