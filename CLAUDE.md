@@ -142,7 +142,12 @@ uv run slice_clip_baseline.py --data-root "$DATA_ROOT" \
 
 - Full plan, ablations, risks: `docs/RESEARCH_PLAN.md`
 - Challenge facts distilled: `docs/CHALLENGE_BRIEF.md`
-- Annotated literature: `docs/REFERENCES.md`
-- Consensus search prompts: `docs/CONSENSUS_QUERIES.md`
+- Annotated literature: `docs/REFERENCES.md` (PDFs in `papers/`)
+- Consensus search prompts + saved results: `docs/CONSENSUS_QUERIES.md`, `papers/*.csv`
+
+## 9. Repo state (2026-06-27)
+
+- **No code yet.** Repo currently holds planning docs + reference PDFs only. No `pyproject.toml`, no venv, no tests, no lint config. Build/lint/test commands will be added when code lands — until then, there is nothing to run in this repo. The baseline lives in the upstream challenge repo (see §6).
+- When adding code: clean venv at repo root, Python ≥3.12, `uv` for the baseline. Do **not** reuse `~/Desktop/INTERNSHIP` venvs.
 
 *Status: planning complete; implementation not started. Last updated 2026-06-27.*
