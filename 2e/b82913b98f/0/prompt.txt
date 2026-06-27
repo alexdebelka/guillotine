@@ -1,0 +1,68 @@
+root@13ebd1a804d0:/shared-docker/work# python -c "
+from monai.networks.nets import SwinUNETR
+m = SwinUNETR(in_channels=1, out_channels=1, feature_size=48, use_checkpoint=False)
+keys = list(m.swinViT.state_dict().keys())
+print('total:', len(keys))
+print('first 10:'); [print(' ', k) for k in keys[:10]]
+print('last 10:'); [print(' ', k) for k in keys[-10:]]
+"
+total: 126
+first 10:
+  patch_embed.proj.weight
+  patch_embed.proj.bias
+  layers1.0.blocks.0.norm1.weight
+  layers1.0.blocks.0.norm1.bias
+  layers1.0.blocks.0.attn.relative_position_bias_table
+  layers1.0.blocks.0.attn.relative_position_index
+  layers1.0.blocks.0.attn.qkv.weight
+  layers1.0.blocks.0.attn.qkv.bias
+  layers1.0.blocks.0.attn.proj.weight
+  layers1.0.blocks.0.attn.proj.bias
+last 10:
+  layers4.0.blocks.1.attn.proj.bias
+  layers4.0.blocks.1.norm2.weight
+  layers4.0.blocks.1.norm2.bias
+  layers4.0.blocks.1.mlp.linear1.weight
+  layers4.0.blocks.1.mlp.linear1.bias
+  layers4.0.blocks.1.mlp.linear2.weight
+  layers4.0.blocks.1.mlp.linear2.bias
+  layers4.0.downsample.reduction.weight
+  layers4.0.downsample.norm.weight
+  layers4.0.downsample.norm.biasthis is before you pushed
+
+---
+
+root@13ebd1a804d0:/shared-docker/work# git pull
+python workers/A/train_b3.py \
+  --pairs-csv "$DATA_ROOT/dataset1/train_pairs.csv" \
+  --steps 100 --log-every 5 --batch-size 16 --severity mild --lr 3e-4 \
+  --out /tmp/b3_probe3.pt
+Already up to date.
+python: can't open file '/shared-docker/work/workers/A/train_b3.py': [Errno 2] No such file or directory
+root@13ebd1a804d0:/shared-docker/work#  this is after you pushed
+
+---
+
+SSL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+step     0  loss 2.7692  avg10 2.7692  t 23.4s
+step     5  loss 2.7735  avg10 2.7802  t 43.4s
+step    10  loss 2.7508  avg10 2.7743  t 84.9s
+
+---
+
+SL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+step     0  loss 2.7692  avg10 2.7692  t 23.4s
+step     5  loss 2.7735  avg10 2.7802  t 43.4s
+step    10  loss 2.7508  avg10 2.7743  t 84.9s
+step    15  loss 2.6170  avg10 2.7474  t 113.7s
+step    20  loss 2.7695  avg10 2.7699  t 158.4s
+step    25  loss 2.7657  avg10 2.7856  t 203.1s
+step    30  loss 2.7793  avg10 2.7706  t 233.3s
+step    35  loss 2.7675  avg10 2.7753  t 274.9s
+step    40  loss 2.7725  avg10 2.8112  t 304.6s
+step    45  loss 2.7726  avg10 2.8128  t 348.7s
+step    50  loss 2.7726  avg10 2.7725  t 394.4s
+step    55  loss 2.7726  avg10 2.7726  t 422.6s
+step    60  loss 2.7726  avg10 2.7726  t 469.9s
+step    65  loss 2.7726  avg10 2.7726  t 517.3s
+step    70  loss 2.7726  avg10 2.7726  t 553.1s
