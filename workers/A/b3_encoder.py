@@ -44,6 +44,8 @@ def load_ssl_weights(model: SwinUNETR, ckpt_path: str) -> int:
         for pre in ("module.", "swinViT.", "backbone.swinViT.", "backbone."):
             if nk.startswith(pre):
                 nk = nk[len(pre):]
+        # MONAI 1.6 renamed Mlp.fc{1,2} -> linear{1,2}
+        nk = nk.replace("mlp.fc1.", "mlp.linear1.").replace("mlp.fc2.", "mlp.linear2.")
         cleaned[nk] = v
     msg = model.swinViT.load_state_dict(cleaned, strict=False)
     matched = len([k for k in model.swinViT.state_dict() if k not in msg.missing_keys])
