@@ -1,0 +1,25 @@
+/init
+
+---
+
+You are joining an in-flight 24h hackathon project. Read these three files in order before doing anything else:
+
+1. CLAUDE.md — full project context.
+2. PIVOT_TASK.md — your specific brief and the constraints.
+3. docs/SLIDES.md — current results, the journey so far, and the numbers you must beat.
+
+You are taking over the CrossKEY pivot. The team is at Kaggle macro MRR 0.5298 and stuck. The PI's own method, CrossKEY (https://github.com/morozovdd/CrossKEY), is almost certainly what the 1.0 leaders are using. Your job is to clone it, adapt it to our data, and produce a branch_crosskey.csv that drops into Nicole's existing RRF pipeline.
+
+Hard constraints (PIVOT_TASK.md explains them in detail):
+- Output contract: CSV query_id, target_id, score, within-pool only, 29,529 rows total across the 6 (dataset, split) pools. Match workers/A/runs/branch_b3.csv exactly in format.
+- Held-out CSV too: also produce branch_cross first-50 dataset1 split — that's thelocal-MRR gate Nicole uses before any Kaggle submission.
+- Stop-loss: if you cannot get a single Crosshe MI300X within 90 minutes, fall back to Plan B (SynthMorph Stage-2 re-rank). Plan C (pure MIND-SSC) if Plan B also fails.
+- Do not touch trackc.py, the submission writks' CSVs.
+- Local-MRR gate every Kaggle submission. Never burn one to discover the branch hurt the fusion.
+
+After you've read the three files, reply with exactly the 3-line summary PIVOT_TASK.md requests at the end:
+1. What you're going to try (CrossKEY vs Plan
+2. Your stop-loss criterion in minutes.
+3. The single concrete first command you're g
+
+Then start. Push commits to main directly as
