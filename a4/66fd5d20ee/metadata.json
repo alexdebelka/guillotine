@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.7.7",
+  "checkpoint_id": "a466fd5d20ee",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "workers/X/README.md",
+    "workers/X/mindssc.py",
+    "workers/X/stage2_mind.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a4/66fd5d20ee/0/metadata.json",
+      "transcript": "/a4/66fd5d20ee/0/full.jsonl",
+      "content_hash": "/a4/66fd5d20ee/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 16,
+    "cache_creation_tokens": 33480,
+    "cache_read_tokens": 2433184,
+    "output_tokens": 21328,
+    "api_call_count": 16
+  }
+}
