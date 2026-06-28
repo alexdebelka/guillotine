@@ -217,4 +217,56 @@ The pattern is *over-investing in our own architecture before exhausting the lit
 
 ---
 
+---
+
+## Appendix B — Glossary
+
+Two lists: terms we coined for this project (so a jury member couldn't Google them), and standard terms from the field that the jury might still want spelled out.
+
+### Terms we coined or repurposed
+
+| Term | Plain-English meaning |
+|---|---|
+| **B1, B2, B3, B4, B5** | Our names for the five independent "voter" models in the pipeline. Numbered, not abbreviated — they don't stand for anything. B1 = MIND descriptor, B2 = frozen foundation model, B3 = our learned encoder, B4 = shape fingerprint, B5 = CrossKEY-style patch matcher. |
+| **Track A / B / C / X** | Our team organisation. Track A = Alex (learned encoder + shape). Track B = Sebastien (training-free MIND + Stage-2 re-rank, never fully landed). Track C = Nicole (evaluation harness + fusion + foundation model). Track X = the late-stage "pivot" session that built the dataset-3 leak exploit and the MIND fallback. |
+| **Branch** | One voter in the pipeline. We say "the B3 branch" the way another team would say "the SwinUNETR pathway". |
+| **Branch contract / branch CSV** | The fixed data format every voter must produce: a CSV with three columns — `query_id`, `target_id`, `score` — and one row per query-gallery pair *within the same dataset and split*. This is the only interface between branches and the fusion engine; it let us work in parallel without colliding. |
+| **Voter** | Plain-English word for "branch" — used in the diagram so non-ML readers immediately understand "they all rank the gallery, we average their ranks". |
+| **Pool** | One of the six (dataset, split) combinations: dataset 1 val + test, dataset 2 val + test, dataset 3 val + test. Rankings are always computed within a pool, never across pools. |
+| **Local-MRR gate** | Our internal sanity check. Before spending a Kaggle submission, we score the candidate pipeline on a held-out chunk of dataset 1 (the same 50 pairs every time, fixed by seed). If the local score doesn't move, we don't submit. |
+| **Held-out / seed=0 first-50** | The 50 patient pairs from dataset 1's labelled training set that we reserve for local scoring. The split is deterministic so every track gates on the *exact same* 50. |
+| **L1 / L2 (Level 1 / Level 2)** | Our shorthand for two local difficulty regimes — **L1** = registered grid (mimics dataset 1), **L2** = same data + a synthetic random deformation applied (mimics dataset 2). It is *not* "L1/L2 regularisation". |
+| **Deformation proxy** | The synthetic random rotation + warp we apply to the held-out scans to simulate dataset 2's difficulty locally. Lets us check if a branch is robust to warping without ever touching the actual dataset 2 labels (we don't have them). |
+| **Stage-2 re-rank** | Our two-stage pipeline shape. Stage 1 = all five voters + RRF give us a rough top-10. Stage 2 = a more expensive pairwise comparison reorders just those 10. Standard idea in information retrieval; "Stage-2" is just our name for it here. |
+| **Anisotropy / "common brain direction"** | Our framing of a known phenomenon: a foundation model pretrained on segmentation maps all brains into a narrow cone of feature space — "this is brain tissue" dominates "this is *this* brain". The fix (BatchNorm before the contrastive loss) subtracts that shared direction. |
+| **ln(B) collapse / collapse signature** | When a contrastive loss converges to exactly `log(batch_size)`, it means the model has mapped every input to the same point in embedding space — total failure dressed up as a "stable" training loss. Recognising the *signature* (the loss value) saved us from days more of fruitless tuning. |
+| **D3 leak v1 / v2** | Our names for the two post-processors that exploit the de-identification gap in dataset 3. v1 = "if a query's NIfTI fingerprint uniquely matches one gallery item, promote it to rank 1". v2 = v1 + "narrow the candidate set when the fingerprint matches a small group" + "exclude already-claimed targets from other queries' rankings". |
+| **Modelling-only score** | The Kaggle score from the pure multi-branch pipeline, before any leak post-processor (0.5298). Distinguished from the post-processed score (0.65577) so the jury can see what's a generalisation result and what's a leak exploit. |
+| **Synth contrast / synthetic contrast augmentation** | At training time we randomly transform each scan's intensity histogram (gamma, inversion, etc.) so the network can never assume "this is T1" or "this is T2" — it has to find features that survive any contrast. |
+| **Independent deformation per view** | When we make two training views of the *same* patient, we apply two *different* random deformations to them. This forces the encoder to be invariant to geometry, not memorise it. |
+| **Multi-stage avg+max pool** | The pooling head on top of the SwinUNETR backbone. We average and max-pool the feature maps at several network depths, then concatenate (resulting dimension: 1536). Standard idea, our specific configuration. |
+| **Embedding contract** | The fixed data format for intermediate outputs between Alex's scripts: a Python pickle file mapping every patient ID to a single unit-norm float32 vector. Lets `embed_b3.py` and `pkl_to_branch.py` compose without coordination. |
+
+### Standard terms the jury may still want spelled out
+
+| Term | Meaning |
+|---|---|
+| **ceT1** | Contrast-enhanced T1-weighted MRI. A T1 scan taken after injecting a contrast dye (typically gadolinium). It highlights tumours and blood vessels. |
+| **T2** | T2-weighted MRI. A different physics setting; the same brain looks very different, with fluid and oedema appearing bright. |
+| **MRI volume** | A 3D image — a stack of 2D slices — of a brain. ~`(256, 256, 256)` voxels at 1 mm spacing in our case. |
+| **NIfTI / `.nii.gz`** | The standard file format for 3D medical images. |
+| **MRR (Mean Reciprocal Rank)** | The score we're judged on. For each query, take `1 / (rank of the correct answer)`, then average. Rank 1 → score 1.0, rank 2 → 0.5, rank 10 → 0.1, not found → 0. |
+| **Macro-MRR** | The challenge metric: MRR computed *per dataset* (1, 2, 3) and then averaged. Macro-averaging means a score of 1.0 on dataset 1 alone gives only 0.33 macro — generalisation is forced. |
+| **SwinUNETR** | A 3D neural network architecture (Swin Transformer + U-Net) widely used as a backbone for medical-image tasks. We use it both frozen (B2) and fine-tuned (B3). |
+| **SSL (self-supervised learning)** | Training a model on unlabelled data via a proxy task (e.g. "reconstruct the masked patches"). Produces general-purpose features without needing annotations. The SwinUNETR checkpoint we start from is SSL-pretrained on ~5000 brain scans. |
+| **InfoNCE / contrastive loss** | The training objective for B3. Given a batch of pairs, push same-pair embeddings together and all other-pair embeddings apart. The denominator is a softmax over all in-batch candidates. |
+| **RRF (Reciprocal Rank Fusion)** | A parameter-free way to combine ranked lists. Each list votes; each candidate gets `1/(k + rank)` from each list; sum and re-sort. We use `k=60` (the standard choice). |
+| **MIND / MIND-SSC** | "Modality-Independent Neighbourhood Descriptor (Self-Similarity Context)". A 2012 hand-crafted descriptor that encodes how each voxel relates to its neighbours rather than its intensity. Provably invariant to any monotonic intensity transform. |
+| **CrossKEY** | A 2024 paper from the same lab as the challenge PI. Learns per-keypoint descriptors across imaging modalities. The intended winner of this challenge. We failed to get it running. |
+| **SynthMorph / SynthSeg** | Two models from the FreeSurfer/MIT team. SynthMorph = contrast-agnostic image registration. SynthSeg = contrast-agnostic brain segmentation. Both rely on training with massively varied synthetic contrast so they generalise to any real scan. |
+| **MONAI** | Medical-imaging PyTorch framework. We use it for data loading, augmentation, and the SwinUNETR implementation. |
+| **Kaggle public leaderboard / private leaderboard** | The leaderboard you see during the competition is computed on a 27% slice of the test set ("public"). The final ranking is computed on the other 73% ("private") and revealed only at the end. A team that overfits the public split can crash on the private. |
+
+---
+
 *All figures sourced from `docs/SLIDES.md`, `PIVOT_TASK.md`, and `workers/X/README.md`. Plain-English version for the jury; technical narrative for engineers in `docs/SLIDES.md`.*
