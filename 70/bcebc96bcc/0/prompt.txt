@@ -1,0 +1,584 @@
+how do I kow if the wrappers are there?
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# cd /shared-docker/work/repo && python -c "import track_b; print(track_b.__file__)"
+/shared-docker/work/repo/track_b/__init__.py
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# python workers/A/run_b1_track_b.py
+
+=== dataset1/val ===
+ gallery: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:15<00:00,  2.66it/s]
+ queries: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:14<00:00,  2.83it/s]
+  added 1600 rows
+
+=== dataset1/test ===
+ gallery: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:38<00:00,  2.59it/s]
+ queries: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:36<00:00,  2.74it/s]
+  added 10000 rows
+
+=== dataset2/val ===
+ gallery: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:14<00:00,  2.72it/s]
+ queries: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:14<00:00,  2.73it/s]
+  added 1600 rows
+
+=== dataset2/test ===
+ gallery: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:38<00:00,  2.63it/s]
+ queries: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:37<00:00,  2.66it/s]
+  added 10000 rows
+
+=== dataset3/val ===
+ gallery: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:08<00:00,  2.43it/s]
+ queries: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:08<00:00,  2.47it/s]
+  added 400 rows
+
+=== dataset3/test ===
+ gallery: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 77/77 [00:30<00:00,  2.49it/s]
+ queries: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 77/77 [00:31<00:00,  2.45it/s]
+  added 5929 rows
+
+wrote workers/A/runs/branch_b1.csv  (29529 rows total)
+
+=== held-out: 50 pairs (seed=0 first-50) ===
+ gallery: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:19<00:00,  2.60it/s]
+ queries: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:19<00:00,  2.57it/s]
+wrote workers/A/runs/branch_b1_holdout.csv  (2500 rows)
+B1 standalone MRR (sanity) = 0.1978
+root@13ebd1a804d0:/shared-docker/work/repo# oot@13ebd1a804d0:/shared-docker/work/repo# python -c "
+import sys; sys.path.insert(0, 'Track C')
+from trackc import scores_to_rankings, rrf, mrr, make_local_split
+import pandas as pd
+
+pairs = pd.read_csv('data/dataset1/train_pairs.csv') if __import__('os').path.exists('data/dataset1/train_pairs.csv') else pd.read_csv('/shared-docker/data/dataset1/train_pairs.csv')
+_, hold, gt = make_local_split(pairs)
+gt = {str(k): str(v) for k, v in gt.items()}
+
+paths = {
+    'b3':      'workers/A/runs/branch_b3_holdout.csv',
+    'b4':      'workers/A/runs/branch_b4_holdout.csv',
+    'b1':      'workers/A/runs/branch_b1_holdout.csv',
+}
+ranks = []
+for name, p in paths.items():
+    try:
+        ranks.append(scores_to_rankings(pd.read_csv(p)))
+        print(f'  loaded {name}')
+    except FileNotFoundError:
+        print(f'  skip   {name}')
+print(f'fused MRR with B1 = {mrr(rrf(ranks), gt):.4f}  (need > 0.7118 to clear +0.02)')
+"
+  loaded b3
+  loaded b4
+  loaded b1
+fused MRR with B1 = 0.5252  (need > 0.7118 to clear +0.02)
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# ls workers/A/runs/*holdout* "Track C/"*holdout* 2>&1
+ls: cannot access 'Track C/*holdout*': No such file or directory
+ workers/A/runs/b3_holdout.pkl   workers/A/runs/b4_holdout.pkl   workers/A/runs/branch_b1_holdout.csv   workers/A/runs/branch_b3_holdout.csv   workers/A/runs/branch_b4_holdout.csv
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# python workers/A/run_stage2_track_b.py --gate \
+  --branch workers/A/runs/branch_b3_holdout.csv \
+  --branch workers/A/runs/branch_b4_holdout.csv \
+  --topk 10
+fused MRR (RRF of 2 branches) = 0.6151
+rerank: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [07:33<00:00,  9.07s/it]
+refined MRR (+ track_b rerank top-10, max_side=96) = 0.7686
+delta = +0.1536
+
+GATE PASSED — run without --gate to write submission.
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+[Image #5]
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# python workers/A/run_stage2_track_b.py --gate \
+  --branch workers/A/runs/branch_b3_holdout.csv \
+  --branch workers/A/runs/branch_b4_holdout.csv \
+  --branch workers/A/runs/branch_b1_holdout.csv \
+  --topk 10
+fused MRR (RRF of 3 branches) = 0.5252
+rerank: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [02:04<00:00,  2.49s/it]
+refined MRR (+ track_b rerank top-10, max_side=96) = 0.7637
+delta = +0.2386
+
+GATE PASSED — run without --gate to write submission.
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+[Image #6]
+
+---
+
+if this would not be better, what improvments can we do?
+
+---
+
+[Image #7]
+
+---
+
+some contestnats have a perfect score. How did they do that?
+
+---
+
+# Check whether dataset1 train pairs share an affine fingerprint
+pairs = pd.read_csv(f'{DATA}/dataset1/train_pairs.csv').head(20)
+for _, r in pairs.iterrows():
+    q = nib.load(f\"{DATA}/{r['query_image']}\")
+    t = nib.load(f\"{DATA}/{r['target_image']}\")
+    aff_q = hashlib.md5(q.affine.tobytes()).hexdigest()[:8]
+    aff_t = hashlib.md5(t.affine.tobytes()).hexdigest()[:8]
+    desc_q = bytes(q.header['descrip']).rstrip(b'\\x00').decode('utf-8', errors='replace')
+    desc_t = bytes(t.header['descrip']).rstrip(b'\\x00').decode('utf-8', errors='replace')
+    match = 'MATCH' if aff_q == aff_t else 'diff'
+    print(f\"{r['query_id']:>8} aff={aff_q} desc={desc_q[:30]!r}\")
+    print(f\"{r['target_id']:>8} aff={aff_t} desc={desc_t[:30]!r}  [{match}]\")
+    print()
+"
+bash: !r}\: event not found
+bash: !r}: event not found
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# cat > /tmp/leak_check.py <<'PYEOF'
+import nibabel as nib, pandas as pd, hashlib, os
+DATA = os.environ.get('DATA_ROOT', '/shared-docker/data')
+
+pairs = pd.read_csv(f'{DATA}/dataset1/train_pairs.csv').head(20)
+for _, r in pairs.iterrows():
+    q = nib.load(f"{DATA}/{r['query_image']}")
+    t = nib.load(f"{DATA}/{r['target_image']}")
+    aff_q = hashlib.md5(q.affine.tobytes()).hexdigest()[:8]
+    aff_t = hashlib.md5(t.affine.tobytes()).hexdigest()[:8]
+    desc_q = bytes(q.header['descrip']).rstrip(b'\x00').decode('utf-8', errors='replace')
+    desc_t = bytes(t.header['descrip']).rstrip(b'\x00').decode('utf-8', errors='replace')
+    aux_q  = bytes
+    shape_q = q.header.get_data_shape()
+    shape_t = t.header.get_data_shape()
+    match = 'MATCH' if aff_q == aff_t else 'diff'
+    print(f"{r['query_id']:>8} aff={aff_q} shape={shape_q} desc={desc_q[:30]!r} aux={aux_q[:30]!r}")
+    print(f"{r['target_id']:>8} aff={aff_t} shape={shape_t} desc={desc_t[:30]!r}")
+    print(f"  [aff:{match}  shape:{'MATCH' if shape_q==shape_t else 'diff'}]")
+    print()
+PYEOF
+python /tmp/leak_check.py
+Traceback (most recent call last):
+  File "/tmp/leak_check.py", line 16, in <module>
+    print(f"{r['query_id']:>8} aff={aff_q} shape={shape_q} desc={desc_q[:30]!r} aux={aux_q[:30]!r}")
+                                                                                     ~~~~~^^^^^
+TypeError: type 'bytes' is not subscriptable
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+python /tmp/leak_check.py
+q=q_0fb1a0d90299 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_266b5af98426 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_a00e2b5b3d66 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_fa7a90280e57 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_b0551c6f4fea aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_a95110adcf95 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_df6faf36396c aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_2fb902821996 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_37ed51bdcf45 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_a35aeb79556b aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_147b25b5b650 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_87f4883c5417 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_b6cd2a77080c aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_0b0efa58b6a0 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_1db928f1682a aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_efe222418900 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_658106d9ce2f aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_4a59b7067b0d aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_586639067cfe aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_78a5b2a9b5b6 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_a4574fc3b0db aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_a617e0949c20 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_ca996655077f aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_cd425f37a9be aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_5581e3f447bc aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_fcf2fbde4e31 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_2e4724424cff aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_cd099baa0209 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_e8c0f4e967e7 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_1f0f0f723c3c aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_109d32936a8e aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_34ad51a4fc06 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_cc067efba7cd aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_a7cfb6d7e17d aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_a57fc693366e aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_aae1ce61791a aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_ec36d9b5e76e aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_fb35c88a23bb aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_3404502dbe84 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_6168c8be83a6 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+======== dataset1 val =========
+  1 unique aff hashes across 40 queries
+  1 unique aff hashes across 40 gallery
+  queries matching EXACTLY 1 gallery by aff: 0/40
+  match-count distribution: {40: 40}
+    q_0f96c625b9cd -> 40 gallery match(es): ['g_f9d76f64d617', 'g_7944a8a0c287', 'g_13da2f95f620']
+    q_7e0d043dbb36 -> 40 gallery match(es): ['g_f9d76f64d617', 'g_7944a8a0c287', 'g_13da2f95f620']
+    q_80236cba65d9 -> 40 gallery match(es): ['g_f9d76f64d617', 'g_7944a8a0c287', 'g_13da2f95f620']
+
+========= dataset2 val =========
+  1 unique aff hashes across 40 queries
+  1 unique aff hashes across 40 gallery
+  queries matching EXACTLY 1 gallery by aff: 0/40
+  match-count distribution: {40: 40}
+    q_35e5b99d921d -> 40 gallery match(es): ['g_dab84955fdda', 'g_a9cca1b01ddf', 'g_9056fa1e395d']
+    q_3cedbdbcd6b6 -> 40 gallery match(es): ['g_dab84955fdda', 'g_a9cca1b01ddf', 'g_9056fa1e395d']
+    q_8434f9737bad -> 40 gallery match(es): ['g_dab84955fdda', 'g_a9cca1b01ddf', 'g_9056fa1e395d']
+
+========= dataset3 val =========
+  20 unique aff hashes across 20 queries
+  20 unique aff hashes across 20 gallery
+  queries matching EXACTLY 1 gallery by aff: 9/20
+  match-count distribution: {0: 11, 1: 9}
+    q_08b59aa17d22 -> 0 gallery match(es): []
+    q_355e76569d5e -> 0 gallery match(es): []
+    q_67882c46a324 -> 0 gallery match(es): []
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+========= dataset2 val =========
+           aff: 0/40 queries with EXACTLY 1 match  dist={40: 40}
+         shape: 0/40 queries with EXACTLY 1 match  dist={40: 40}
+          size: 0/40 queries with EXACTLY 1 match  dist={40: 40}
+     aff+shape: 0/40 queries with EXACTLY 1 match  dist={40: 40}
+    shape+size: 0/40 queries with EXACTLY 1 match  dist={40: 40}
+
+========= dataset2 test =========
+           aff: 0/100 queries with EXACTLY 1 match  dist={100: 100}
+         shape: 0/100 queries with EXACTLY 1 match  dist={100: 100}
+          size: 0/100 queries with EXACTLY 1 match  dist={98: 98, 2: 2}
+     aff+shape: 0/100 queries with EXACTLY 1 match  dist={100: 100}
+    shape+size: 0/100 queries with EXACTLY 1 match  dist={98: 98, 2: 2}
+
+========= dataset3 val =========
+           aff: 9/20 queries with EXACTLY 1 match  dist={0: 11, 1: 9}
+         shape: 11/20 queries with EXACTLY 1 match  dist={3: 3, 1: 11, 2: 2, 4: 4}
+          size: 11/20 queries with EXACTLY 1 match  dist={3: 3, 1: 11, 2: 2, 4: 4}
+     aff+shape: 9/20 queries with EXACTLY 1 match  dist={0: 11, 1: 9}
+    shape+size: 11/20 queries with EXACTLY 1 match  dist={3: 3, 1: 11, 2: 2, 4: 4}
+
+========= dataset3 test =========
+           aff: 38/77 queries with EXACTLY 1 match  dist={1: 38, 0: 39}
+         shape: 28/77 queries with EXACTLY 1 match  dist={1: 28, 8: 8, 2: 8, 5: 5, 4: 4, 15: 15, 6: 6, 3: 3}
+          size: 27/77 queries with EXACTLY 1 match  dist={1: 27, 9: 9, 2: 8, 5: 5, 4: 4, 15: 15, 6: 6, 3: 3}
+     aff+shape: 38/77 queries with EXACTLY 1 match  dist={1: 38, 0: 39}
+    shape+size: 28/77 queries with EXACTLY 1 match  dist={1: 28, 8: 8, 2: 8, 5: 5, 4: 4, 15: 15, 6: 6, 3: 3}
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+[Image #8]
+
+---
+
+what other changes can we do to may have a 0.30 increase?
+
+---
+
+yes
+
+---
+
+for name, idx in [("header_blob", 0), ("pixel_corner", 1), ("path_dir_+_stem", 2)]:
+        g_by = {}
+        for tid, x in gfp.items():
+            g_by.setdefault(x[idx], []).append(tid)
+        unique = sum(1 for x in qfp.values() if len(g_by.get(x[idx], [])) == 1)
+        dist = Counter(len(g_by.get(x[idx], [])) for x in qfp.values())
+        print(f"  {name:>18}: {unique}/{len(qfp)} unique  dist={dict(dist)}")
+
+    # Also try header_blob + pixel_corner combined
+    g_by = {}
+python /tmp/leak_refine.pyit)t'):):  # d1 is fully homogeneous; skipt={dict(dist)}")
+  File "/tmp/leak_refine.py", line 6
+    cat > /tmp/leak_refine.py <<'PYEOF'
+          ^
+SyntaxError: invalid syntax
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+remote: Total 22 (delta 7), reused 22 (delta 7), pack-reused 0 (from 0)
+Unpacking objects: 100% (22/22), 48.23 KiB | 851.00 KiB/s, done.
+From https://github.com/alexdebelka/guillotine
+   f2e57d3..51aef04  main                  -> origin/main
+   2972738..b52f68d  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Merge made by the 'ort' strategy.
+ workers/X/leak_refine.py | 86 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 86 insertions(+)
+ create mode 100644 workers/X/leak_refine.py
+
+========= dataset2 val =========
+      header_blob: 0/40 unique  dist={40: 40}
+     pixel_corner: 0/40 unique  dist={36: 38, 0: 2}
+    path_dir+stem: 0/40 unique  dist={0: 40}
+    header+corner: 0/40 unique  dist={36: 38, 0: 2}
+  example query path:  dataset2/images/val/queries/q_35e5b99d921d.nii
+  example target path: dataset2/images/val/gallery/g_dab84955fdda.nii
+
+========= dataset2 test =========
+      header_blob: 0/100 unique  dist={98: 98, 2: 2}
+     pixel_corner: 0/100 unique  dist={94: 90, 2: 2, 0: 8}
+    path_dir+stem: 0/100 unique  dist={0: 100}
+    header+corner: 0/100 unique  dist={94: 90, 2: 2, 0: 8}
+  example query path:  dataset2/images/test/queries/q_791d1a8c3ef8.nii
+  example target path: dataset2/images/test/gallery/g_ca78770f1023.nii
+
+========= dataset3 val =========
+      header_blob: 9/20 unique  dist={0: 11, 1: 9}
+     pixel_corner: 0/20 unique  dist={0: 8, 19: 12}
+    path_dir+stem: 0/20 unique  dist={0: 20}
+    header+corner: 4/20 unique  dist={0: 16, 1: 4}
+  example query path:  dataset3/images/val/queries/q_08b59aa17d22.nii
+  example target path: dataset3/images/val/gallery/g_099f934e990e.nii
+
+========= dataset3 test =========
+      header_blob: 38/77 unique  dist={1: 38, 0: 39}
+     pixel_corner: 0/77 unique  dist={0: 28, 76: 49}
+    path_dir+stem: 0/77 unique  dist={0: 77}
+    header+corner: 25/77 unique  dist={0: 52, 1: 25}
+  example query path:  dataset3/images/test/queries/q_f826283b0843.nii
+  example target path: dataset3/images/test/gallery/g_317cc195c810.nii
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+From https://github.com/alexdebelka/guillotine
+   51aef04..07b956a  main                  -> origin/main
+   b52f68d..5e3cff2  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Merge made by the 'ort' strategy.
+ workers/X/leak_pixel.py | 75 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 75 insertions(+)
+ create mode 100644 workers/X/leak_pixel.py
+
+========= dataset2 val =========
+   center_32^3: 0/40 unique  dist={0: 40}
+
+========= dataset2 test =========
+   center_32^3: 0/100 unique  dist={0: 100}
+
+========= dataset3 val =========
+   center_32^3: 0/20 unique  dist={0: 20}
+    full_pixel: 0/20 unique  dist={0: 20}
+
+========= dataset3 test =========
+   center_32^3: 0/77 unique  dist={0: 77}
+    full_pixel: 0/77 unique  dist={0: 77}
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+what about 0.15-0.2
+
+---
+
+is device cuda correct for the AMD gpu?    07b956a..63e5863  main                  -> origin/main
+   5e3cff2..7f32d08  entire/checkpoints/v1 -> origin/entire/checkpoints/v1
+Merge made by the 'ort' strategy.
+ workers/X/b5_xkey.py | 324 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 324 insertions(+)
+ create mode 100644 workers/X/b5_xkey.py
+device=cuda
+training on 300 pairs (held out 50)
+cache:  54%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌
+
+---
+
+after the cache, the training will start?
+
+---
+
+raining on 300 pairs (held out 50)
+cache: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 300/300 [06:49<00:00,  1.37s/it]
+cached in 409.6s  (~5.03 GB)
+step    0  loss 6.3873  diag +0.0376  offdiag +0.0294  delta +0.0082
+step   50  loss 0.4740  diag +0.8385  offdiag -0.0094  delta +0.8479
+step  100  loss 0.1863  diag +0.8635  offdiag -0.0106  delta +0.8741
+step  150  loss 0.1404  diag +0.8797  offdiag -0.0115  delta +0.8912
+step  200  loss 0.0984  diag +0.8881  offdiag -0.0118  delta +0.8999
+step  250  loss 0.1524  diag +0.8713  offdiag -0.0122  delta +0.8835
+step  300  loss 0.0910  diag +0.8923  offdiag -0.0124  delta +0.9047
+step  350  loss 0.0816  diag +0.8882  offdiag -0.0128  delta +0.9010
+step  400  loss 0.0711  diag +0.8975  offdiag -0.0130  delta +0.9105
+step  450  loss 0.0551  diag +0.9085  offdiag -0.0133  delta +0.9218
+
+---
+
+how is it looking? step 1550  loss 0.0562  diag +0.9185  offdiag -0.0142  delta +0.9327
+step 1600  loss 0.0294  diag +0.9054  offdiag -0.0142  delta +0.9196
+step 1650  loss 0.0148  diag +0.9280  offdiag -0.0144  delta +0.9424
+step 1700  loss 0.0180  diag +0.9199  offdiag -0.0143  delta +0.9342
+step 1750  loss 0.0190  diag +0.9229  offdiag -0.0142  delta +0.9371
+step 1800  loss 0.0231  diag +0.9171  offdiag -0.0142  delta +0.9312
+step 1850  loss 0.0218  diag +0.9228  offdiag -0.0144  delta +0.9372
+step 1900  loss 0.0173  diag +0.9275  offdiag -0.0144  delta +0.9419
+step 1950  loss 0.0292  diag +0.9317  offdiag -0.0144  delta +0.9462
+saved workers/X/runs/b5.pt
+root@13ebd1a804d0:/shared-docker/work/repo# python workers/X/b5_xkey.py embed --ckpt workers/X/runs/b5.pt --mode both
+device=cuda
+loaded workers/X/runs/b5.pt
+holdout: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [01:17<00:00,  1.54s/it]
+wrote workers/X/runs/branch_b5_holdout.csv  standalone MRR = 0.1932 it is still running
+
+---
+
+This is from the previous task [Image #9]
+
+---
+
+now I am running this root@13ebd1a804d0:/shared-docker/work/repo# python workers/X/b5_xkey.py embed --ckpt workers/X/runs/b5.pt --mode holdout --grid --grid-n 8
+device=cuda
+loaded workers/X/runs/b5.pt
+holdout:  50%|███████████████
+
+---
+
+oot@13ebd1a804d0:/shared-docker/work/repo# python workers/X/b5_xkey.py embed --ckpt workers/X/runs/b5.pt --mode holdout --grid --grid-n 8
+device=cuda
+loaded workers/X/runs/b5.pt
+holdout: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [01:25<00:00,  1.71s/it]
+wrote workers/X/runs/branch_b5_holdout.csv  standalone MRR = 0.2299
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+SSL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+pooled feature dim (all stages, avg+max): 2976
+step     0  loss 1.9226  avg10 1.9226  inp_std 0.515  enc Δ +0.012 (d+0.967/o+0.955)  head Δ +0.178 (d+0.272/o+0.094)  t 8.3s
+step    10  loss 7.9264  avg10 4.6100  inp_std 0.596  enc Δ -0.014 (d+0.940/o+0.954)  head Δ -0.324 (d+0.044/o+0.368)  t 35.1s
+step    20  loss 1.9469  avg10 2.6727  inp_std 0.550  enc Δ -0.005 (d+0.916/o+0.921)  head Δ +0.025 (d+0.632/o+0.607)  t 73.6s
+step    30  loss 1.2760  avg10 1.6345  inp_std 0.463  enc Δ -0.003 (d+0.962/o+0.965)  head Δ +0.051 (d+0.842/o+0.791)  t 102.6s
+step    40  loss 2.1214  avg10 1.4691  inp_std 0.562  enc Δ -0.004 (d+0.958/o+0.962)  head Δ -0.059 (d+0.757/o+0.816)  t 134.7s
+step    50  loss 0.8380  avg10 1.2829  inp_std 0.504  enc Δ +0.003 (d+0.933/o+0.931)  head Δ +0.105 (d+0.888/o+0.783)  t 164.8s
+step    60  loss 1.2458  avg10 1.6078  inp_std 0.508  enc Δ +0.007 (d+0.939/o+0.931)  head Δ +0.050 (d+0.879/o+0.829)  t 192.2s
+step    70  loss 1.0690  avg10 1.5072  inp_std 0.541  enc Δ +0.004 (d+0.975/o+0.970)  head Δ +0.068 (d+0.921/o+0.853)  t 222.2s
+step    80  loss 1.2506  avg10 1.3720  inp_std 0.637  enc Δ +0.006 (d+0.908/o+0.901)  head Δ +0.037 (d+0.937/o+0.900)  t 250.5s
+step    90  loss 1.4091  avg10 1.3702  inp_std 0.515  enc Δ +0.001 (d+0.983/o+0.982)  head Δ +0.006 (d+0.900/o+0.894)  t 278.4s
+step   100  loss 1.4238  avg10 1.3354  inp_std 0.472  enc Δ +0.003 (d+0.990/o+0.987)  head Δ +0.009 (d+0.913/o+0.904)  t 308.5s
+step   110  loss 2.0971  avg10 1.4391  inp_std 0.434  enc Δ +0.000 (d+0.977/o+0.976)  head Δ -0.066 (d+0.812/o+0.879)  t 341.7s
+step   120  loss 1.7076  avg10 1.4199  inp_std 0.564  enc Δ -0.010 (d+0.961/o+0.971)  head Δ -0.033 (d+0.915/o+0.948)  t 371.0s
+step   130  loss 1.5095  avg10 1.3786  inp_std 0.584  enc Δ -0.015 (d+0.938/o+0.953)  head Δ -0.012 (d+0.923/o+0.935)  t 401.6s
+step   140  loss 1.4912  avg10 1.3720  inp_std 0.578  enc Δ +0.005 (d+0.947/o+0.942)  head Δ -0.012 (d+0.939/o+0.951)  t 429.4s
+step   150  loss 1.1499  avg10 1.2890  inp_std 0.492  enc Δ +0.006 (d+0.975/o+0.969)  head Δ +0.043 (d+0.933/o+0.891)  t 457.7s
+step   160  loss 1.3012  avg10 1.4043  inp_std 0.466  enc Δ -0.000 (d+0.963/o+0.963)  head Δ +0.028 (d+0.903/o+0.875)  t 486.4s
+step   170  loss 1.4331  avg10 1.3998  inp_std 0.519  enc Δ -0.018 (d+0.929/o+0.947)  head Δ -0.002 (d+0.952/o+0.954)  t 514.8s
+step   180  loss 1.0063  avg10 1.2847  inp_std 0.578  enc Δ +0.018 (d+0.965/o+0.947)  head Δ +0.076 (d+0.935/o+0.859)  t 547.5s
+step   190  loss 1.7321  avg10 1.4110  inp_std 0.521  enc Δ -0.001 (d+0.970/o+0.971)  head Δ -0.017 (d+0.848/o+0.865)  t 580.9s
+step   200  loss 1.2611  a
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# python workers/A/train_b3.py \
+  --pairs-csv /shared-docker/data/dataset1/train_pairs.csv \
+  --severity medium \
+  --steps 1500 \
+  --out workers/A/runs/b3_medium.pt
+SSL load: matched 126/126 swinViT tensors (missing 0, unexpected 8)
+pooled feature dim (all stages, avg+max): 2976
+step     0  loss 0.0817  avg10 0.0817  inp_std 0.456  enc Δ +0.012 (d+0.990/o+0.978)  head Δ +0.599 (d+0.592/o-0.007)  t 8.8s
+step    10  loss 2.4801  avg10 4.0301  inp_std 0.460  enc Δ +0.000 (d+0.983/o+0.983)  head Δ +0.192 (d+0.377/o+0.185)  t 23.9s
+step    20  loss 2.5299  avg10 3.1468  inp_std 0.387  enc Δ +0.001 (d+0.987/o+0.986)  head Δ +0.025 (d+0.529/o+0.504)  t 44.1s
+step    30  loss 0.7108  avg10 1.5724  inp_std 0.372  enc Δ +0.002 (d+0.994/o+0.992)  head Δ +0.249 (d+0.790/o+0.540)  t 64.5s
+step    40  loss 2.3241  avg10 1.7612  inp_std 0.427  enc Δ -0.005 (d+0.981/o+0.986)  head Δ -0.027 (d+0.734/o+0.762)  t 87.0s
+step    50  loss 1.3699  avg10 1.4534  inp_std 0.468  enc Δ +0.009 (d+0.988/o+0.978)  head Δ +0.020 (d+0.920/o+0.900)  t 106.6s
+step    60  loss 1.6519  avg10 1.3181  inp_std 0.501  enc Δ -0.002 (d+0.971/o+0.973)  head Δ -0.017 (d+0.836/o+0.853)  t 127.2s
+step    70  loss 1.7782  avg10 1.5954  inp_std 0.523  enc Δ -0.006 (d+0.957/o+0.963)  head Δ -0.042 (d+0.863/o+0.905)  t 148.7s
+step    80  loss 1.1068  avg10 1.2963  inp_std 0.442  enc Δ +0.003 (d+0.978/o+0.976)  head Δ +0.069 (d+0.919/o+0.850)  t 169.9s
+step    90  loss 1.1778  avg10 1.1531  inp_std 0.414  enc Δ +0.008 (d+0.989/o+0.981)  head Δ +0.042 (d+0.945/o+0.902)  t 192.6s
+step   100  loss 0.8807  avg10 1.2952  inp_std 0.432  enc Δ +0.004 (d+0.991/o+0.987)  head Δ +0.112 (d+0.954/o+0.842)  t 211.6s
+step   110  loss 1.2883  avg10 1.2859  inp_std 0.518  enc Δ +0.003 (d+0.967/o+0.964)  head Δ +0.019 (d+0.920/o+0.901)  t 231.1s
+step   120  loss 2.1152  avg10 1.3849  inp_std 0.402  enc Δ +0.013 (d+0.994/o+0.980)  head Δ -0.067 (d+0.825/o+0.891)  t 251.6s
+step   130  loss 1.4155  avg10 1.3570  inp_std 0.401  enc Δ -0.003 (d+0.985/o+0.988)  head Δ +0.015 (d+0.869/o+0.854)  t 274.6s
+step   140  loss 1.3637  avg10 1.2680  inp_std 0.477  enc Δ +0.000 (d+0.978/o+0.978)  head Δ +0.007 (d+0.938/o+0.930)  t 294.5s
+step   150  loss 1.1242  avg10 1.2979  inp_std 0.492  enc Δ +0.012 (d+0.972/o+0.960)  head Δ +0.042 (d+0.937/o+0.895)  t 315.1s
+step   160  loss 1.1476  avg10 1.3641  inp_std 0.422  enc Δ +0.002 (d+0.979/o+0.977)  head Δ +0.057 (d+0.875/o+0.818)  t 336.9s
+step   170  loss 1.1037  avg10 1.2501  inp_std 0.419  enc Δ -0.004 (d+0.984/o+0.988)  head Δ +0.083 (d+0.931/o+0.849)  t 359.4s
+step   180  loss 1.4076  avg10 1.3820  inp_std 0.421  enc Δ +0.006 (d+0.964/o+0.959)  head Δ +0.016 (d+0.877/o+0.861)  t 385.9s
+step   190  loss 1.3384  avg10 1.3013  inp_std 0.415  enc Δ +0.002 (d+0.979/o+0.977)  head Δ +0.025 (d+0.869/o+0.844)  t 406.0s
+step   200  loss 1.1420  avg10 1.2244  inp_std 0.470  enc Δ +0.008 (d+0.982/o+0.974)  head Δ +0.060 (d+0.925/o+0.865)  t 425.0s
+step   210  loss 1.3630  avg10 1.3082  inp_std 0.380  enc Δ +0.000 (d+0.979/o+0.979)  head Δ +0.064 (d+0.867/o+0.802)  t 446.1s
+step   220  loss 1.4525  avg10 1.2540  inp_std 0.493  enc Δ +0.002 (d+0.989/o+0.987)  head Δ -0.006 (d+0.934/o+0.940)  t 467.2s
+step   230  loss 1.0270  avg10 1.0188  inp_std 0.474  enc Δ -0.002 (d+0.987/o+0.989)  head Δ +0.091 (d+0.937/o+0.846)  t 487.3s
+step   240  loss 1.4016  avg10 1.3532  inp_std 0.512  enc Δ +0.004 (d+0.942/o+0.937)  head Δ +0.008 (d+0.902/o+0.895)  t 507.8s
+step   250  loss 1.9455  avg10 1.5135  inp_std 0.375  enc Δ +0.003 (d+0.982/o+0.979)  head Δ -0.035 (d+0.839/o+0.874)  t 529.5s
+step   260  loss 1.0814  avg10 1.3316  inp_std 0.441  enc Δ +0.002 (d+0.942/o+0.941)  head Δ +0.050 (d+0.924/o+0.874)  t 551.4s
+step   270  loss 1.4732  avg10 1.3486  inp_std 0.430  enc Δ -0.000 (d+0.980/o+0.980)  head Δ +0.012 (d+0.888/o+0.877)  t 572.7s
+step   280  loss 1.1038  avg10 1.2122  inp_std 0.476  enc Δ +0.008 (d+0.988/o+0.980)  head Δ +0.042 (d+0.976/o+0.934)  t 593.6s
+step   290  loss 1.3701  avg10 1.2110  inp_std 0.425  enc Δ -0.000 (d+0.992/o+0.992)  head Δ +0.009 (d+0.924/o+0.915)  t 614.0s
+step   300  loss 1.3620  avg10 1.1154  inp_std 0.382  enc Δ -0.003 (d+0.968/o+0.971)  head Δ +0.015 (d+0.898/o+0.883)  t 636.5s
+step   310  loss 0.9708  avg10 1.0598  inp_std 0.436  enc Δ +0.005 (d+0.968/o+0.963)  head Δ +0.073 (d+0.922/o+0.849)  t 657.8s
+
+---
+
+write it
+
+---
+
+[Image #12]
+
+---
+
+how would we source the dataset?
