@@ -1,0 +1,1 @@
+Explain every terminology and abreviation that we might have created and it is not standard practice. Write them in plain language and then commit and pus
