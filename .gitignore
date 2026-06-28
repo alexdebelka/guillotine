@@ -7,3 +7,6 @@ external/
 submissions/
 *.nii.gz
 data/
+*.pt
+*.nii
+Track C/submission*.csv
