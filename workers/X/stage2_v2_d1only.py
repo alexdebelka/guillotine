@@ -39,8 +39,12 @@ from run_stage2_track_b import scores_to_rankings, rrf, load_pools, rerank_pool
 
 
 DATA_ROOT = os.environ.get("DATA_ROOT", "/shared-docker/data")
-# ponytail: re-rank only the dataset where the local gate validated it.
-RERANK_DATASETS = {"dataset1"}
+# ponytail: re-rank only the datasets where re-rank helps (gated empirically by
+# Kaggle submission). dataset1: confirmed +0.038 macro (PB 0.56830). dataset2:
+# under test -- MIND is provably deformation-tolerant so it MIGHT help, but no
+# holdout to gate locally. dataset3: confirmed NOT to re-rank (preop->intra-op
+# structural change defeats MIND). Override via --rerank-ds CLI flag.
+RERANK_DATASETS = {"dataset1", "dataset2"}
 
 
 def main():
@@ -51,11 +55,14 @@ def main():
     ap.add_argument("--topk", type=int, default=10)
     ap.add_argument("--max-side", type=int, default=96)
     ap.add_argument("--data-root", default=DATA_ROOT)
+    ap.add_argument("--rerank-ds", default=",".join(sorted(RERANK_DATASETS)),
+                    help="comma-separated dataset names to re-rank (e.g. 'dataset1,dataset2')")
     args = ap.parse_args()
+    rerank_datasets = {s.strip() for s in args.rerank_ds.split(",") if s.strip()}
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     pools = load_pools(args.data_root)
-    print(f"loaded {len(pools)} pools  rerank={sorted(RERANK_DATASETS)}")
+    print(f"loaded {len(pools)} pools  rerank={sorted(rerank_datasets)}")
     branch_dfs = [pd.read_csv(p) for p in args.branch]
     print(f"loaded {len(branch_dfs)} branches:")
     for b in args.branch:
@@ -72,7 +79,7 @@ def main():
             pool_branches.append(scores_to_rankings(sub))
         fused = rrf(pool_branches)
 
-        if ds in RERANK_DATASETS:
+        if ds in rerank_datasets:
             q_path = {str(r["query_id"]): str(Path(args.data_root) / r["query_image"])
                       for _, r in pool["q"].iterrows()}
             t_path = {str(r["target_id"]): str(Path(args.data_root) / r["target_image"])
