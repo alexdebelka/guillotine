@@ -1,0 +1,329 @@
+how do I kow if the wrappers are there?
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# cd /shared-docker/work/repo && python -c "import track_b; print(track_b.__file__)"
+/shared-docker/work/repo/track_b/__init__.py
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# python workers/A/run_b1_track_b.py
+
+=== dataset1/val ===
+ gallery: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:15<00:00,  2.66it/s]
+ queries: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:14<00:00,  2.83it/s]
+  added 1600 rows
+
+=== dataset1/test ===
+ gallery: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:38<00:00,  2.59it/s]
+ queries: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:36<00:00,  2.74it/s]
+  added 10000 rows
+
+=== dataset2/val ===
+ gallery: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:14<00:00,  2.72it/s]
+ queries: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 40/40 [00:14<00:00,  2.73it/s]
+  added 1600 rows
+
+=== dataset2/test ===
+ gallery: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:38<00:00,  2.63it/s]
+ queries: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:37<00:00,  2.66it/s]
+  added 10000 rows
+
+=== dataset3/val ===
+ gallery: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:08<00:00,  2.43it/s]
+ queries: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:08<00:00,  2.47it/s]
+  added 400 rows
+
+=== dataset3/test ===
+ gallery: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 77/77 [00:30<00:00,  2.49it/s]
+ queries: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 77/77 [00:31<00:00,  2.45it/s]
+  added 5929 rows
+
+wrote workers/A/runs/branch_b1.csv  (29529 rows total)
+
+=== held-out: 50 pairs (seed=0 first-50) ===
+ gallery: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:19<00:00,  2.60it/s]
+ queries: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:19<00:00,  2.57it/s]
+wrote workers/A/runs/branch_b1_holdout.csv  (2500 rows)
+B1 standalone MRR (sanity) = 0.1978
+root@13ebd1a804d0:/shared-docker/work/repo# oot@13ebd1a804d0:/shared-docker/work/repo# python -c "
+import sys; sys.path.insert(0, 'Track C')
+from trackc import scores_to_rankings, rrf, mrr, make_local_split
+import pandas as pd
+
+pairs = pd.read_csv('data/dataset1/train_pairs.csv') if __import__('os').path.exists('data/dataset1/train_pairs.csv') else pd.read_csv('/shared-docker/data/dataset1/train_pairs.csv')
+_, hold, gt = make_local_split(pairs)
+gt = {str(k): str(v) for k, v in gt.items()}
+
+paths = {
+    'b3':      'workers/A/runs/branch_b3_holdout.csv',
+    'b4':      'workers/A/runs/branch_b4_holdout.csv',
+    'b1':      'workers/A/runs/branch_b1_holdout.csv',
+}
+ranks = []
+for name, p in paths.items():
+    try:
+        ranks.append(scores_to_rankings(pd.read_csv(p)))
+        print(f'  loaded {name}')
+    except FileNotFoundError:
+        print(f'  skip   {name}')
+print(f'fused MRR with B1 = {mrr(rrf(ranks), gt):.4f}  (need > 0.7118 to clear +0.02)')
+"
+  loaded b3
+  loaded b4
+  loaded b1
+fused MRR with B1 = 0.5252  (need > 0.7118 to clear +0.02)
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# ls workers/A/runs/*holdout* "Track C/"*holdout* 2>&1
+ls: cannot access 'Track C/*holdout*': No such file or directory
+ workers/A/runs/b3_holdout.pkl   workers/A/runs/b4_holdout.pkl   workers/A/runs/branch_b1_holdout.csv   workers/A/runs/branch_b3_holdout.csv   workers/A/runs/branch_b4_holdout.csv
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# python workers/A/run_stage2_track_b.py --gate \
+  --branch workers/A/runs/branch_b3_holdout.csv \
+  --branch workers/A/runs/branch_b4_holdout.csv \
+  --topk 10
+fused MRR (RRF of 2 branches) = 0.6151
+rerank: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [07:33<00:00,  9.07s/it]
+refined MRR (+ track_b rerank top-10, max_side=96) = 0.7686
+delta = +0.1536
+
+GATE PASSED — run without --gate to write submission.
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+[Image #5]
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# python workers/A/run_stage2_track_b.py --gate \
+  --branch workers/A/runs/branch_b3_holdout.csv \
+  --branch workers/A/runs/branch_b4_holdout.csv \
+  --branch workers/A/runs/branch_b1_holdout.csv \
+  --topk 10
+fused MRR (RRF of 3 branches) = 0.5252
+rerank: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [02:04<00:00,  2.49s/it]
+refined MRR (+ track_b rerank top-10, max_side=96) = 0.7637
+delta = +0.2386
+
+GATE PASSED — run without --gate to write submission.
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+[Image #6]
+
+---
+
+if this would not be better, what improvments can we do?
+
+---
+
+[Image #7]
+
+---
+
+some contestnats have a perfect score. How did they do that?
+
+---
+
+# Check whether dataset1 train pairs share an affine fingerprint
+pairs = pd.read_csv(f'{DATA}/dataset1/train_pairs.csv').head(20)
+for _, r in pairs.iterrows():
+    q = nib.load(f\"{DATA}/{r['query_image']}\")
+    t = nib.load(f\"{DATA}/{r['target_image']}\")
+    aff_q = hashlib.md5(q.affine.tobytes()).hexdigest()[:8]
+    aff_t = hashlib.md5(t.affine.tobytes()).hexdigest()[:8]
+    desc_q = bytes(q.header['descrip']).rstrip(b'\\x00').decode('utf-8', errors='replace')
+    desc_t = bytes(t.header['descrip']).rstrip(b'\\x00').decode('utf-8', errors='replace')
+    match = 'MATCH' if aff_q == aff_t else 'diff'
+    print(f\"{r['query_id']:>8} aff={aff_q} desc={desc_q[:30]!r}\")
+    print(f\"{r['target_id']:>8} aff={aff_t} desc={desc_t[:30]!r}  [{match}]\")
+    print()
+"
+bash: !r}\: event not found
+bash: !r}: event not found
+
+---
+
+root@13ebd1a804d0:/shared-docker/work/repo# cat > /tmp/leak_check.py <<'PYEOF'
+import nibabel as nib, pandas as pd, hashlib, os
+DATA = os.environ.get('DATA_ROOT', '/shared-docker/data')
+
+pairs = pd.read_csv(f'{DATA}/dataset1/train_pairs.csv').head(20)
+for _, r in pairs.iterrows():
+    q = nib.load(f"{DATA}/{r['query_image']}")
+    t = nib.load(f"{DATA}/{r['target_image']}")
+    aff_q = hashlib.md5(q.affine.tobytes()).hexdigest()[:8]
+    aff_t = hashlib.md5(t.affine.tobytes()).hexdigest()[:8]
+    desc_q = bytes(q.header['descrip']).rstrip(b'\x00').decode('utf-8', errors='replace')
+    desc_t = bytes(t.header['descrip']).rstrip(b'\x00').decode('utf-8', errors='replace')
+    aux_q  = bytes
+    shape_q = q.header.get_data_shape()
+    shape_t = t.header.get_data_shape()
+    match = 'MATCH' if aff_q == aff_t else 'diff'
+    print(f"{r['query_id']:>8} aff={aff_q} shape={shape_q} desc={desc_q[:30]!r} aux={aux_q[:30]!r}")
+    print(f"{r['target_id']:>8} aff={aff_t} shape={shape_t} desc={desc_t[:30]!r}")
+    print(f"  [aff:{match}  shape:{'MATCH' if shape_q==shape_t else 'diff'}]")
+    print()
+PYEOF
+python /tmp/leak_check.py
+Traceback (most recent call last):
+  File "/tmp/leak_check.py", line 16, in <module>
+    print(f"{r['query_id']:>8} aff={aff_q} shape={shape_q} desc={desc_q[:30]!r} aux={aux_q[:30]!r}")
+                                                                                     ~~~~~^^^^^
+TypeError: type 'bytes' is not subscriptable
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+python /tmp/leak_check.py
+q=q_0fb1a0d90299 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_266b5af98426 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_a00e2b5b3d66 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_fa7a90280e57 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_b0551c6f4fea aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_a95110adcf95 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_df6faf36396c aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_2fb902821996 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_37ed51bdcf45 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_a35aeb79556b aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_147b25b5b650 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_87f4883c5417 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_b6cd2a77080c aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_0b0efa58b6a0 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_1db928f1682a aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_efe222418900 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_658106d9ce2f aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_4a59b7067b0d aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_586639067cfe aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_78a5b2a9b5b6 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_a4574fc3b0db aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_a617e0949c20 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_ca996655077f aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_cd425f37a9be aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_5581e3f447bc aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_fcf2fbde4e31 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_2e4724424cff aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_cd099baa0209 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_e8c0f4e967e7 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_1f0f0f723c3c aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_109d32936a8e aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_34ad51a4fc06 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_cc067efba7cd aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_a7cfb6d7e17d aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_a57fc693366e aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_aae1ce61791a aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_ec36d9b5e76e aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_fb35c88a23bb aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+q=q_3404502dbe84 aff=a0c4db37 shape=(240, 240, 155) desc=''
+t=g_6168c8be83a6 aff=a0c4db37 shape=(240, 240, 155) desc=''
+  [aff:MATCH  shape:MATCH]
+
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+======== dataset1 val =========
+  1 unique aff hashes across 40 queries
+  1 unique aff hashes across 40 gallery
+  queries matching EXACTLY 1 gallery by aff: 0/40
+  match-count distribution: {40: 40}
+    q_0f96c625b9cd -> 40 gallery match(es): ['g_f9d76f64d617', 'g_7944a8a0c287', 'g_13da2f95f620']
+    q_7e0d043dbb36 -> 40 gallery match(es): ['g_f9d76f64d617', 'g_7944a8a0c287', 'g_13da2f95f620']
+    q_80236cba65d9 -> 40 gallery match(es): ['g_f9d76f64d617', 'g_7944a8a0c287', 'g_13da2f95f620']
+
+========= dataset2 val =========
+  1 unique aff hashes across 40 queries
+  1 unique aff hashes across 40 gallery
+  queries matching EXACTLY 1 gallery by aff: 0/40
+  match-count distribution: {40: 40}
+    q_35e5b99d921d -> 40 gallery match(es): ['g_dab84955fdda', 'g_a9cca1b01ddf', 'g_9056fa1e395d']
+    q_3cedbdbcd6b6 -> 40 gallery match(es): ['g_dab84955fdda', 'g_a9cca1b01ddf', 'g_9056fa1e395d']
+    q_8434f9737bad -> 40 gallery match(es): ['g_dab84955fdda', 'g_a9cca1b01ddf', 'g_9056fa1e395d']
+
+========= dataset3 val =========
+  20 unique aff hashes across 20 queries
+  20 unique aff hashes across 20 gallery
+  queries matching EXACTLY 1 gallery by aff: 9/20
+  match-count distribution: {0: 11, 1: 9}
+    q_08b59aa17d22 -> 0 gallery match(es): []
+    q_355e76569d5e -> 0 gallery match(es): []
+    q_67882c46a324 -> 0 gallery match(es): []
+root@13ebd1a804d0:/shared-docker/work/repo#
+
+---
+
+========= dataset2 val =========
+           aff: 0/40 queries with EXACTLY 1 match  dist={40: 40}
+         shape: 0/40 queries with EXACTLY 1 match  dist={40: 40}
+          size: 0/40 queries with EXACTLY 1 match  dist={40: 40}
+     aff+shape: 0/40 queries with EXACTLY 1 match  dist={40: 40}
+    shape+size: 0/40 queries with EXACTLY 1 match  dist={40: 40}
+
+========= dataset2 test =========
+           aff: 0/100 queries with EXACTLY 1 match  dist={100: 100}
+         shape: 0/100 queries with EXACTLY 1 match  dist={100: 100}
+          size: 0/100 queries with EXACTLY 1 match  dist={98: 98, 2: 2}
+     aff+shape: 0/100 queries with EXACTLY 1 match  dist={100: 100}
+    shape+size: 0/100 queries with EXACTLY 1 match  dist={98: 98, 2: 2}
+
+========= dataset3 val =========
+           aff: 9/20 queries with EXACTLY 1 match  dist={0: 11, 1: 9}
+         shape: 11/20 queries with EXACTLY 1 match  dist={3: 3, 1: 11, 2: 2, 4: 4}
+          size: 11/20 queries with EXACTLY 1 match  dist={3: 3, 1: 11, 2: 2, 4: 4}
+     aff+shape: 9/20 queries with EXACTLY 1 match  dist={0: 11, 1: 9}
+    shape+size: 11/20 queries with EXACTLY 1 match  dist={3: 3, 1: 11, 2: 2, 4: 4}
+
+========= dataset3 test =========
+           aff: 38/77 queries with EXACTLY 1 match  dist={1: 38, 0: 39}
+         shape: 28/77 queries with EXACTLY 1 match  dist={1: 28, 8: 8, 2: 8, 5: 5, 4: 4, 15: 15, 6: 6, 3: 3}
+          size: 27/77 queries with EXACTLY 1 match  dist={1: 27, 9: 9, 2: 8, 5: 5, 4: 4, 15: 15, 6: 6, 3: 3}
+     aff+shape: 38/77 queries with EXACTLY 1 match  dist={1: 38, 0: 39}
+    shape+size: 28/77 queries with EXACTLY 1 match  dist={1: 28, 8: 8, 2: 8, 5: 5, 4: 4, 15: 15, 6: 6, 3: 3}
+root@13ebd1a804d0:/shared-docker/work/repo#

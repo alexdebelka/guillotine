@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.7.7",
+  "checkpoint_id": "fb096794987f",
+  "session_id": "30f43fd4-1a25-429d-9a82-d34eeee1bdc9",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-28T06:29:14.088791Z",
+  "branch": "main",
+  "checkpoints_count": 8,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "56d518bc6659",
+  "token_usage": {
+    "input_tokens": 158,
+    "cache_creation_tokens": 372231,
+    "cache_read_tokens": 9121281,
+    "output_tokens": 79064,
+    "api_call_count": 64
+  },
+  "session_metrics": {
+    "turn_count": 10
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 463,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 24,
+        "Track C/Untitled.ipynb": 330
+      }
+    }
+  ]
+}
