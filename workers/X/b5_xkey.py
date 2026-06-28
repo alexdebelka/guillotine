@@ -195,28 +195,49 @@ def cmd_train(args):
 
 
 # ============================================================ inference
-@torch.no_grad()
-def embed_volume(model, device, vol: np.ndarray, K: int, rng: np.random.Generator) -> np.ndarray:
-    """Sample K foreground patches, encode, mean-pool, L2-norm -> (DIM,) float32."""
+def grid_coords(vol: np.ndarray, n_per_axis: int) -> np.ndarray:
+    """n_per_axis^3 deterministic coords uniformly inside the brain bounding box."""
     margin = PATCH // 2
-    coords = foreground_coords(vol, margin)
-    pick = rng.choice(len(coords), min(K, len(coords)),
-                      replace=(len(coords) < K))
-    patches = np.stack([crop_patch(vol, *coords[p]) for p in pick])  # (K, 1, P, P, P)
+    mask = vol > vol.mean() * 0.1
+    if mask.sum() == 0:
+        bbox = [(margin, VOL_SIZE - margin)] * 3
+    else:
+        nz = np.where(mask)
+        bbox = [(max(margin, int(d.min())), min(VOL_SIZE - margin, int(d.max())))
+                for d in nz]
+    axes = [np.linspace(lo, hi, n_per_axis, dtype=int) for lo, hi in bbox]
+    return np.array(np.meshgrid(*axes, indexing="ij")).reshape(3, -1).T
+
+
+@torch.no_grad()
+def embed_volume(model, device, vol: np.ndarray, K: int,
+                 rng: np.random.Generator, grid: bool = False,
+                 grid_n: int = 8) -> np.ndarray:
+    """Sample patches, encode, mean-pool, L2-norm -> (DIM,) float32.
+    grid=True: deterministic grid_n^3 coords (subject-comparable). Else K random."""
+    margin = PATCH // 2
+    if grid:
+        coords = grid_coords(vol, grid_n)
+    else:
+        fg = foreground_coords(vol, margin)
+        pick = rng.choice(len(fg), min(K, len(fg)), replace=(len(fg) < K))
+        coords = fg[pick]
+    patches = np.stack([crop_patch(vol, *c) for c in coords])  # (N, 1, P, P, P)
     batch = torch.from_numpy(patches).float().to(device)
-    z = model(batch)                       # (K, DIM)
+    z = model(batch)                       # (N, DIM)
     v = F.normalize(z.mean(dim=0), dim=0)  # (DIM,)
     return v.cpu().numpy().astype(np.float32)
 
 
 def embed_pool(model, device, csv_path: str, id_col: str, img_col: str,
-               K: int, rng: np.random.Generator) -> dict:
+               K: int, rng: np.random.Generator,
+               grid: bool = False, grid_n: int = 8) -> dict:
     df = pd.read_csv(csv_path)
     out = {}
     for _, r in tqdm(df.iterrows(), total=len(df),
                      desc=os.path.basename(csv_path)):
         vol = load_vol(r[img_col])
-        out[str(r[id_col])] = embed_volume(model, device, vol, K, rng)
+        out[str(r[id_col])] = embed_volume(model, device, vol, K, rng, grid, grid_n)
     return out
 
 
@@ -259,8 +280,8 @@ def cmd_embed(args):
         hold = pairs.iloc[idx[:args.n_holdout]].reset_index(drop=True)
         q_emb, g_emb = {}, {}
         for _, r in tqdm(list(hold.iterrows()), desc="holdout"):
-            q_emb[str(r["query_id"])]  = embed_volume(model, device, load_vol(r["query_image"]),  args.K, rng)
-            g_emb[str(r["target_id"])] = embed_volume(model, device, load_vol(r["target_image"]), args.K, rng)
+            q_emb[str(r["query_id"])]  = embed_volume(model, device, load_vol(r["query_image"]),  args.K, rng, args.grid, args.grid_n)
+            g_emb[str(r["target_id"])] = embed_volume(model, device, load_vol(r["target_image"]), args.K, rng, args.grid, args.grid_n)
         gt = dict(zip(hold["query_id"].astype(str), hold["target_id"].astype(str)))
         with open(out_dir / "b5_holdout.pkl", "wb") as f:
             pickle.dump({"queries": q_emb, "gallery": g_emb, "gt": gt}, f)
@@ -286,7 +307,8 @@ def cmd_embed(args):
             csv_path = f"{DATA}/{ds}/{csv_name}.csv"
             if not os.path.exists(csv_path):
                 print(f"skip {csv_path}"); continue
-            result[ds][csv_name] = embed_pool(model, device, csv_path, id_col, img_col, args.K, rng)
+            result[ds][csv_name] = embed_pool(model, device, csv_path, id_col, img_col,
+                                              args.K, rng, args.grid, args.grid_n)
         with open(out_dir / "b5_embeddings.pkl", "wb") as f:
             pickle.dump(result, f)
         pkl_to_branch_csv(result, str(out_dir / "branch_b5.csv"))
@@ -312,6 +334,10 @@ def main():
     e.add_argument("--mode", choices=["full", "holdout", "both"], default="both")
     e.add_argument("--out-dir", default="workers/X/runs")
     e.add_argument("--K", type=int, default=128)
+    e.add_argument("--grid", action="store_true",
+                   help="use deterministic grid_n^3 coords (subject-comparable)")
+    e.add_argument("--grid-n", type=int, default=8,
+                   help="grid size per axis when --grid; total patches = grid_n^3")
     e.add_argument("--seed", type=int, default=0)
     e.add_argument("--n-holdout", type=int, default=50)
     e.set_defaults(func=cmd_embed)
