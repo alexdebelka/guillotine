@@ -1,0 +1,13 @@
+/init
+
+---
+
+/goal have a very easy to digest and easy plain english wording presentation for the hackathon's jury. Include all the algortihms, techniques, and results we made and have
+
+---
+
+where did we fail?
+
+---
+
+yes
