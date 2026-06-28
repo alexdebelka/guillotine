@@ -21,6 +21,13 @@ from tqdm import tqdm
 # import track_b in-process — way faster than CLI subprocesses (cache reuse, no model reload)
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from track_b.mind import mind_vector
+from track_b.io import load_nifti_array
+
+
+def _mv(path: Path, max_side: int):
+    """mind_vector wraps load_nifti_array; force ndarray output so np.stack + matmul work."""
+    v = mind_vector(load_nifti_array(path), max_side=max_side)
+    return v.detach().cpu().numpy() if hasattr(v, "detach") else v
 
 
 DATA_ROOT = os.environ.get("DATA_ROOT", "/shared-docker/data")
@@ -36,13 +43,13 @@ def embed_pool(queries_df: pd.DataFrame, gallery_df: pd.DataFrame, data_root: st
     """Return list of (qid, tid, score) rows for one pool."""
     g_vecs, g_ids = [], []
     for _, r in tqdm(gallery_df.iterrows(), total=len(gallery_df), desc=" gallery"):
-        v = mind_vector(Path(data_root) / r["target_image"], max_side=max_side)
+        v = _mv(Path(data_root) / r["target_image"], max_side)
         g_vecs.append(v); g_ids.append(str(r["target_id"]))
     G = np.stack(g_vecs)
 
     rows = []
     for _, r in tqdm(queries_df.iterrows(), total=len(queries_df), desc=" queries"):
-        q = mind_vector(Path(data_root) / r["query_image"], max_side=max_side)
+        q = _mv(Path(data_root) / r["query_image"], max_side)
         sims = G @ q  # unit-norm cosine
         qid = str(r["query_id"])
         for tid, s in zip(g_ids, sims):
@@ -88,12 +95,12 @@ def main():
         # gallery is the 50 held-out targets
         g_vecs, g_ids = [], []
         for _, r in tqdm(hold.iterrows(), total=len(hold), desc=" gallery"):
-            v = mind_vector(Path(args.data_root) / r["target_image"], max_side=args.max_side)
+            v = _mv(Path(args.data_root) / r["target_image"], args.max_side)
             g_vecs.append(v); g_ids.append(str(r["target_id"]))
         G = np.stack(g_vecs)
         rows = []
         for _, r in tqdm(hold.iterrows(), total=len(hold), desc=" queries"):
-            q = mind_vector(Path(args.data_root) / r["query_image"], max_side=args.max_side)
+            q = _mv(Path(args.data_root) / r["query_image"], args.max_side)
             sims = G @ q
             qid = str(r["query_id"])
             for tid, s in zip(g_ids, sims):
@@ -107,7 +114,7 @@ def main():
         gt = dict(zip(hold["query_id"].astype(str), hold["target_id"].astype(str)))
         rec = []
         for qid, qv in zip(hold["query_id"].astype(str),
-                           [mind_vector(Path(args.data_root) / p, max_side=args.max_side)
+                           [_mv(Path(args.data_root) / p, args.max_side)
                             for p in hold["query_image"]]):
             sims = G @ qv
             order = np.argsort(-sims)
